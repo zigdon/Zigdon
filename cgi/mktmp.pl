@@ -1,5 +1,19 @@
 #!/usr/bin/perl -wT
 
+# The idea is to present a CGI over https, allowing you to leave a note with a
+# link that will work exactly once.
+#
+# The design attempts to be secure, both from non-root attackers on the server,
+# or from remote attacks.
+#
+# Let's assume brute force attacks will be blocked on the IP level (say, any IP
+# hitting the CGI 50 times in an hour will be blocked for a day).   This won't
+# stop brute force attacks local to the server, so suggestions would be welcome
+# there too.
+#
+# The onetime directory has odd permissions - root owned, 0733, meaning you can
+# read a file if you know it's name, but you can't list it.
+
 use strict;
 use CGI;
 
