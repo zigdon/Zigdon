@@ -11,15 +11,16 @@ $VERSION = "0.1";
 
 use strict;
 
-my $ENTER = 10;
+use constant ( ENTER => 10 );
 
 sub check_enter {
     my ($key) = @_;
+    return unless $key eq ENTER;
+
     my $text = Irssi::parse_special '$L', undef, 0;
     my $channel = Irssi::parse_special '$C', undef, 0;
     if (
-         $key eq $ENTER
-            and ( Irssi::settings_get_str('nsfw_channels') eq '*'
+            ( Irssi::settings_get_str('nsfw_channels') eq '*'
                   or Irssi::settings_get_str('nsfw_channels') =~ /\Q$channel/i ) # channel is in the list
             and $text =~ m#https?://#i # input matches http://
             and $text !~ /\bn?sfw\b/i # input doesn't match N?SFW
