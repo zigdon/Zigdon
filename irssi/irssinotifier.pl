@@ -3,6 +3,7 @@
 
 use Irssi;
 use POSIX;
+use LWP::UserAgent;
 use vars qw($VERSION %IRSSI);
 
 $VERSION = "6";
@@ -23,6 +24,10 @@ my $lastAddress;
 my $lastTarget;
 my $lastKeyboardActivity = time;
 my $valid                = 0;
+my $ua = LWP::UserAgent->new( agent => "irssinotifier/$VERSION" );
+$ua->timeout(3);
+#$ua->add_handler("request_send", sub { shift->dump; return });
+#$ua->add_handler("response_done", sub { shift->dump; return });
 
 sub private {
     my ( $server, $msg, $nick, $address ) = @_;
@@ -87,19 +92,27 @@ sub hilite {
         $lastTarget = encrypt($lastTarget);
     }
 
-    my $data =
-"--post-data=apiToken=$api_token\\&message=$lastMsg\\&channel=$lastTarget\\&nick=$lastNick\\&version=$VERSION";
-    my $result =
-`/usr/bin/env wget --no-check-certificate -qO- /dev/null $data https://irssinotifier.appspot.com/API/Message`;
-    if ( $? != 0 ) {
+    my $res = $ua->post(
+        "https://irssinotifier.appspot.com/API/Message",
+        {
+            apiToken => $api_token,
+            message  => $lastMsg,
+            channel  => $lastTarget,
+            nick     => $lastNick,
+            version  => $VERSION,
+        }
+    );
+    if ( $res->is_error ) {
 
-# Something went wrong, might be network error or authorization issue. Probably no need to alert user, though.
-# Irssi::print("IrssiNotifier: Sending hilight to server failed, check http://irssinotifier.appspot.com for updates");
+        # Something went wrong, might be network error or authorization issue.
+        # Probably no need to alert user, though.
+        # Irssi::print( "IrssiNotifier: Sending hilight to server failed, " .
+        #               "check http://irssinotifier.appspot.com for updates");
         return;
     }
 
-    if ( length($result) > 0 ) {
-        Irssi::print("IrssiNotifier: $result");
+    if ( length( $res->decoded_content ) > 0 ) {
+        Irssi::print( "IrssiNotifier: ". $res->decoded_content );
     }
 }
 
@@ -174,8 +187,7 @@ sub setup_keypress_handler {
 "IrssiNotifier: Encryption password cannot contain backticks, double quotes or backslashes"
         );
         $valid = 0;
-    }
-    elsif ( not $encryption_password ) {
+    } elsif ( not $encryption_password ) {
         Irssi::print(
 "IrssiNotifier: Set encryption password to send notifications (must be same as in the Android device): /set irssinotifier_encryption_password [password]"
         );
