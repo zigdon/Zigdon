@@ -168,11 +168,6 @@ sub setup_keypress_handler {
         $valid = 0;
     }
 
-    unless ( -x "/usr/bin/wget" ) {
-        Irssi::print("IrssiNotifier: /usr/bin/wget not found.");
-        $valid = 0;
-    }
-
     if ( dangerous_string Irssi::settings_get_str('irssinotifier_api_token') ) {
         Irssi::print(
 "IrssiNotifier: Api token cannot contain backticks, double quotes or backslashes"
