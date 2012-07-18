@@ -22,6 +22,7 @@ my $lastNick;
 my $lastAddress;
 my $lastTarget;
 my $lastKeyboardActivity = time;
+my $valid = 0;
 
 sub private {
     my ($server, $msg, $nick, $address) = @_;
@@ -67,40 +68,14 @@ sub dangerous_string {
 }
 
 sub hilite {
-    if (!Irssi::settings_get_str('irssinotifier_api_token')) {
-        Irssi::print("IrssiNotifier: Set API token to send notifications: /set irssinotifier_api_token [token]");
-        return;
-    }
+    return unless $valid;
 
-    #`/usr/bin/env openssl version`;
-    #if ($? != 0) {
-    #    Irssi::print("IrssiNotifier: You'll need to install OpenSSL to use IrssiNotifier");
-    #    return;
-    #}
-
-    #`/usr/bin/env wget --version`;
-    #if ($? != 0) {
-    #    Irssi::print("IrssiNotifier: You'll need to install Wget to use IrssiNotifier");
-    #    return;
-    #}
-    
     my $api_token = Irssi::settings_get_str('irssinotifier_api_token');
-    if (dangerous_string $api_token) {
-        Irssi::print("IrssiNotifier: Api token cannot contain backticks, double quotes or backslashes");
-        return;
-    }
-
     my $encryption_password = Irssi::settings_get_str('irssinotifier_encryption_password');
     if ($encryption_password) {
-        if (dangerous_string $encryption_password) {
-            Irssi::print("IrssiNotifier: Encryption password cannot contain backticks, double quotes or backslashes");
-            return;
-        }
         $lastMsg = encrypt($lastMsg);
         $lastNick = encrypt($lastNick);
         $lastTarget = encrypt($lastTarget);
-    } else {
-        Irssi::print("IrssiNotifier: Set encryption password to send notifications (must be same as in the Android device): /set irssinotifier_encryption_password [password]");
     }
 
     my $data = "--post-data=apiToken=$api_token\\&message=$lastMsg\\&channel=$lastTarget\\&nick=$lastNick\\&version=$VERSION";
@@ -146,9 +121,43 @@ sub decrypt {
 }
 
 sub setup_keypress_handler {
+    $valid = 1;
     Irssi::signal_remove('gui key pressed', 'event_key_pressed');
     if (Irssi::settings_get_int('irssinotifier_require_idle_seconds') > 0) {
         Irssi::signal_add('gui key pressed', 'event_key_pressed');
+    }
+
+    if (!Irssi::settings_get_str('irssinotifier_api_token')) {
+        Irssi::print("IrssiNotifier: Set API token to send notifications: /set irssinotifier_api_token [token]");
+        $valid = 0;
+    }
+
+    unless (-x "/usr/bin/openssl") {
+        Irssi::print("IrssiNotifier: /usr/bin/openssl not found.");
+        $valid = 0;
+    }
+
+    unless (-x "/usr/bin/wget") {
+        Irssi::print("IrssiNotifier: /usr/bin/wget not found.");
+        $valid = 0;
+    }
+    
+    if (dangerous_string Irssi::settings_get_str('irssinotifier_api_token')) {
+        Irssi::print("IrssiNotifier: Api token cannot contain backticks, double quotes or backslashes");
+        $valid = 0;
+    }
+
+    my $encryption_password = Irssi::settings_get_str('irssinotifier_encryption_password');
+    if ($encryption_password and dangerous_string $encryption_password) {
+          Irssi::print("IrssiNotifier: Encryption password cannot contain backticks, double quotes or backslashes");
+          $valid = 0;
+    } elsif (not $encryption_password) {
+        Irssi::print("IrssiNotifier: Set encryption password to send notifications (must be same as in the Android device): /set irssinotifier_encryption_password [password]");
+        $valid = 0;
+    }
+
+    unless ($valid) {
+        Irssi::print("IrssiNotifier: invalid settings, notifications disabled");
     }
 }
 
