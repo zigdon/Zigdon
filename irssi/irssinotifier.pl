@@ -26,8 +26,9 @@ my $valid = 0;
 
 sub private {
     my ($server, $msg, $nick, $address) = @_;
-    $lastMsg = $msg;
     $lastServer = $server;
+    return if $lastServer->{tag} eq 'bitlbee';
+    $lastMsg = $msg;
     $lastNick = $nick;
     $lastAddress = $address;
     $lastTarget = "!PRIVATE";
@@ -35,8 +36,9 @@ sub private {
 
 sub public {
     my ($server, $msg, $nick, $address, $target) = @_;
-    $lastMsg = $msg;
     $lastServer = $server;
+    return if $lastServer->{tag} eq 'bitlbee';
+    $lastMsg = $msg;
     $lastNick = $nick;
     $lastAddress = $address;
     $lastTarget = $target;
