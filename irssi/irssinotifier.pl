@@ -26,6 +26,7 @@ my $lastKeyboardActivity = time;
 my $valid                = 0;
 my $ua = LWP::UserAgent->new( agent => "irssinotifier/$VERSION" );
 $ua->timeout(3);
+
 #$ua->add_handler("request_send", sub { shift->dump; return });
 #$ua->add_handler("response_done", sub { shift->dump; return });
 
@@ -112,7 +113,7 @@ sub hilite {
     }
 
     if ( length( $res->decoded_content ) > 0 ) {
-        Irssi::print( "IrssiNotifier: ". $res->decoded_content );
+        Irssi::print( "IrssiNotifier: " . $res->decoded_content );
     }
 }
 
