@@ -24,7 +24,7 @@
 use strict;
 use vars qw($VERSION %IRSSI);
 
-$VERSION = "1.4-benley2";
+$VERSION = "1.5-zigdon";
 %IRSSI = (
     authors     => 'Jakub Jankowski',
     contact     => 'shasta@atn.pl',
@@ -51,22 +51,34 @@ my @colors = ('0', '4', '8', '9', '11', '12', '13');
 # str make_colors($string)
 # returns random-coloured string
 sub make_colors {
-    my ($string) = @_;
+    my ($string, $stretch) = @_;
     my $newstr = "";
     my $last = 255;
     my $color = 0;
 
-    for (my $c = 0; $c < length($string); $c++) {
-        my $char = substr($string, $c, 1);
-        if ($char eq ' ') {
-            $newstr .= $char;
+    unless (defined $stretch) {
+      $stretch = Irssi::settings_get_bool('rainbow_stretch');
+    }
+
+    my $step;
+    if ($stretch) {
+      $step = length($string) / @colors;
+      $step = 1 if $step < 1;
+    } else {
+      $step = 1;
+    }
+
+    for (my $c = 0; $c < length($string); $c += $step) {
+        my $section = substr($string, $c, $step);
+        if ($section eq ' ') {
+            $newstr .= $section;
             next;
         }
 
         $color++;
         $newstr .= "\003";
         $newstr .= sprintf("%02d", $colors[$color % @colors]);
-        $newstr .= (($char eq ",") ? ",," : $char);
+        $newstr .= $section;
     }
 
     return $newstr . "\003"; # One last ^C to return to normal text color.
@@ -147,6 +159,7 @@ signal_add_last 'complete word' => sub {
     }
 };
 
+Irssi::settings_add_bool('rainbow', 'rainbow_stretch', 1);
 
 Irssi::command_bind("rsay", "rsay");
 Irssi::command_bind("rtopic", "rtopic");
