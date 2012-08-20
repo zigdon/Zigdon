@@ -24,7 +24,7 @@
 use strict;
 use vars qw($VERSION %IRSSI);
 
-$VERSION = "1.5-zigdon";
+$VERSION = "1.5-z1";
 %IRSSI = (
     authors     => 'Jakub Jankowski',
     contact     => 'shasta@atn.pl',
@@ -62,7 +62,7 @@ sub make_colors {
 
     my $step;
     if ($stretch) {
-      $step = length($string) / @colors;
+      $step = int(length($string) / @colors);
       $step = 1 if $step < 1;
     } else {
       $step = 1;
