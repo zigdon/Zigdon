@@ -20,7 +20,7 @@ char = evelink.char.Char(char_id=char_id, api=api)
 
 activity = char.wallet_journal()
 
-for entry in activity[-10:]:
+for entry in activity:
   date = humanize.naturalday(datetime.datetime.fromtimestamp(entry['timestamp']))
   if entry['amount'] >= 0:
     party = entry['party_1']['name']
@@ -30,6 +30,6 @@ for entry in activity[-10:]:
   if party == 'CONCORD' and re.match('\d+:\d', reason):
     reason = "Bounty"
 
-  print "%10s | %20s | %12s | %15s | %s" % \
+  print "%10s | %26s | %12s | %16s | %s" % \
     (date, party, humanize.intcomma(entry['amount']),
     humanize.intcomma(entry['balance']), reason)
