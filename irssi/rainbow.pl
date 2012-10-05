@@ -46,7 +46,7 @@ use Irssi::Irc;
 # 11 == light cyan
 # 12 == light blue
 # 13 == light magenta
-my @colors = ('0', '4', '8', '9', '11', '12', '13');
+my @colors = ('4', '8', '9', '11', '12', '13');
 
 # str make_colors($string)
 # returns random-coloured string
@@ -75,10 +75,10 @@ sub make_colors {
             next;
         }
 
-        $color++;
         $newstr .= "\003";
         $newstr .= sprintf("%02d", $colors[$color % @colors]);
         $newstr .= $section;
+        $color++;
     }
 
     return $newstr . "\003"; # One last ^C to return to normal text color.
