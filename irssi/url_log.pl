@@ -199,7 +199,7 @@ sub sig_msg {
                     (?:[\w-]+\.){2,}[a-z]+)  # something.like.this
                  )
                  (?:    #    - path (optional)
-                    / [/\w~.%;&?=-]*
+                    / \S*
                  )?
               )
               ($|\s.*)  # $3 - trailing comments
