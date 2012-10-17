@@ -22,9 +22,10 @@
 # Tab completion by Benjamin Staffin <benley@gmail.com>
 
 use strict;
+use POSIX;
 use vars qw($VERSION %IRSSI);
 
-$VERSION = "1.5-z1";
+$VERSION = "1.5-z2";
 %IRSSI = (
     authors     => 'Jakub Jankowski',
     contact     => 'shasta@atn.pl',
@@ -62,7 +63,7 @@ sub make_colors {
 
     my $step;
     if ($stretch) {
-      $step = int(length($string) / @colors);
+      $step = ceil(length($string) / @colors);
       $step = 1 if $step < 1;
     } else {
       $step = 1;
