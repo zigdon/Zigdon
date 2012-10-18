@@ -21,7 +21,7 @@ $VERSION = "1.1";
     name    => 'url_log',
     description => 'Fetches HTML pages titles, generates an HTML index',
     license => 'GNU GPLv2 or later',
-    url     => 'http://home.peeron.com/~dan/hacks/url_log.html',
+    url     => 'https://github.com/zigdon/Zigdon/blob/master/irssi/url_log.pl',
 );
 
 use LWP;
