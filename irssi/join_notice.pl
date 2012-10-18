@@ -14,7 +14,7 @@ $VERSION = '1.0';
     description => 'Print a message in PM windows when the person reconnects to
                     the network',
     license => 'GPLv2',
-    url     => 'http://home.peeron.com/~dan/hacks/join_notice.pl',
+    url     => 'https://github.com/zigdon/Zigdon/blob/master/irssi/join_notice.pl',
     changed => '2008-11-20',
 );
 

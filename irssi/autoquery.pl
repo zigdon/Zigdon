@@ -9,6 +9,7 @@ $VERSION = '0.01';
     name        => 'query autonumber',
     description => 'Allows more control on the number new windows get',
     license     => 'GNU General Public License',
+    url         => 'https://github.com/zigdon/Zigdon/blob/master/irssi/autoquery.pl',
 );
 
 use Data::Dumper;

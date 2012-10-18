@@ -10,8 +10,8 @@ $VERSION = "0.01";
     name	=> "hilightwin",
     description	=> "Print hilighted messages & private messages to window named \"hilight\"",
     license	=> "Public Domain",
-    url		=> "http://irssi.org/",
-    changed	=> "2002-03-04T22:47+0100"
+    url		=> "https://github.com/zigdon/Zigdon/blob/master/irssi/hilightwin.pl",
+    changed	=> "2002-03-04T22:47+0100",
 );
 
 my $mc_nick = "zigdon";

@@ -10,7 +10,7 @@ $VERSION = "0.1";
     name        => 'shutup',
     description => 'Shut up annoying users.  Usage: /shutup nick; /nonick nick; /shutup <sec> nick',
     license     => 'GNU GPL v2',
-    url         => 'http://peeron.com',
+    url         => 'https://github.com/zigdon/Zigdon/blob/master/irssi/shutup.pl',
     changed     => 'Thu Jun  5 14:57:04 PDT 2008',
 );
 

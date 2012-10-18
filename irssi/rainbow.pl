@@ -32,7 +32,7 @@ $VERSION = "1.5-z2";
     name        => 'rainbow',
     description => 'Prints colored text. Rather simple than sophisticated.',
     license     => 'GNU GPLv2 or later',
-    url         => 'http://irssi.atn.pl/',
+    url         => 'https://github.com/zigdon/Zigdon/blob/master/irssi/rainbow.pl',
 );
 
 use Irssi;

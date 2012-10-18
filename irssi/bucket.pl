@@ -9,6 +9,7 @@ $VERSION = '1.00';
     name        => 'Bucket teaching script',
     description => 'Send a PM to bucket, and echo it to the current channel, if bucket is not already there',
     license     => 'GNU General Public License',
+    url         => 'https://github.com/zigdon/Zigdon/blob/master/irssi/bucket.pl',
 );
 
 my %channels = map {$_=>1} qw/#xkcd #hops #bucket/;

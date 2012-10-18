@@ -9,7 +9,7 @@ $VERSION = "0.01";
     name	=> "conversation",
     description	=> "Hilight nicks who you've responsded to recently",
     license	=> "Creating Commons Attribution-ShareAlike 3.0",
-    url		=> "http://irssi.org/",
+    url		=> "https://github.com/zigdon/Zigdon/blob/master/irssi/conversation.pl",
     changed	=> "2011-02-23 12:50 PST",
 );
 

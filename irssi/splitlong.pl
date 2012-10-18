@@ -20,7 +20,8 @@ $VERSION = "0.20";
 	licence     => "Public Domain",
 	description => "Split overlong PRIVMSGs to msgs with length allowed by ircd",
 	changed     => "Wed Jun 25 00:17:00 CET 2003",
-	changes     => "Actually the real 0.19 (now 0.20), but upload didn't work some month ago, target problem fixed..."
+	changes     => "Actually the real 0.19 (now 0.20), but upload didn't work some month ago, target problem fixed...",
+    url         => "https://github.com/zigdon/Zigdon/blob/master/irssi/splitlong.pl",
 );
 
 sub sig_command_msg {

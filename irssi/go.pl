@@ -22,6 +22,7 @@ $VERSION = '1.01';
 'Implements /go command that activates a window given a name/partial name. It features a nice completion.',
     license => 'GPLv2 or later',
     changed => '08-17-04'
+    url     => 'https://github.com/zigdon/Zigdon/blob/master/irssi/go.pl',
 );
 
 sub signal_complete_go {

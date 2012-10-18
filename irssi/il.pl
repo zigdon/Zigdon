@@ -34,7 +34,7 @@ $VERSION = '0.0.5';
     name        => 'inputlength',
     description => 'adds a statusbar item which show length of the inputline',
     license     => 'BSD License or something more liberal',
-    url         => 'http://www.irssi.de./',
+    url         => 'https://github.com/zigdon/Zigdon/blob/master/irssi/il.pl',
     changed     => '2003-01-13T13:17:44Z'
 );
 

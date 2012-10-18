@@ -7,7 +7,7 @@ $VERSION = "0.1";
     description =>
       "force all links sent to (some) channels to be marked SFW/NSFW",
     license => "GPLv2 or later",
-    url     => "https://github.com/zigdon/Zigdon/tree/master/irssi/nsfw.pl",
+    url     => "https://github.com/zigdon/Zigdon/blob/master/irssi/nsfw.pl",
 );
 
 use strict;

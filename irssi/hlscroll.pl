@@ -13,7 +13,7 @@ $VERSION = '0.02';
     name	=> 'Scroll to hilights',
     description	=> 'Scrolls to previous or next highlight',
     license	=> 'Public Domain',
-    url		=> 'http://juerd.nl/site.plp/irssi',
+    url		=> 'https://github.com/zigdon/Zigdon/blob/master/irssi/hlscroll.pl',
     changed	=> 'Fri Apr 13 05:48 CEST 2012',
     inspiration => '@eevee on Twitter: "i really want irssi keybindings that will scroll to the next/previous line containing a highlight. why does this not exist"',
 );
