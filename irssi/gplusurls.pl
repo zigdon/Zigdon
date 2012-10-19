@@ -18,8 +18,6 @@ $VERSION = "0.1";
 use Irssi;
 use Irssi::Irc;
 
-use Data::Dumper; $Data::Dumper::indent=1;
-
 sub cleanup {
   my ($line, $server, $witem) = @_;
 
