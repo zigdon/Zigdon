@@ -32,3 +32,6 @@ sub cleanup {
     }
   }
 }
+
+Irssi::signal_add('message public', \&cleanup);
+
