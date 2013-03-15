@@ -21,15 +21,11 @@ sub cleanup {
   my ($server, $msg, $nick, $address, $target) = @_;
 
 
-  if ($nick eq 'comlink') {
-    $msg =~ s/^<(\w+)>//;
-    if ($1) {
-      $nick = "<$1>";
-      Irssi::signal_emit("message public", $server, $msg, $nick, $address, $target);
-      Irssi::signal_stop();
-      return;
-
-    }
+  if ($nick eq 'comlink' and $address =~ /^comlink@/ and $msg =~ s/^(<\w+>)\s+//) {
+    $nick = $1;
+    Irssi::signal_emit("message public", $server, $msg, $nick, $address, $target);
+    Irssi::signal_stop();
+    return;
   }
 }
 
