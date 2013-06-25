@@ -6,7 +6,7 @@ import evelink
 import datetime
 import humanize
 import re
-import evelink.cache.shelf ## for testing only
+import evelink.cache.shelf
 
 with open("/home/zigdon/.everc") as f:
     char_id = int(f.next())
@@ -15,7 +15,7 @@ with open("/home/zigdon/.everc") as f:
     f.close()
 
 api = evelink.api.API(api_key=(key_id, vcode),
-                      cache=evelink.cache.shelf.ShelveCache("/tmp/evecache"))
+                      cache=evelink.cache.shelf.ShelveCache("/tmp/evecache-wallet"))
 char = evelink.char.Char(char_id=char_id, api=api)
 
 activity = char.wallet_journal()
