@@ -67,7 +67,7 @@ sub pgupStatusbar() {
 sub update_cmd_re {
     my @commands = split /\s*,\s*/, Irssi::settings_get_str('antisboops_command_list');
     my $new = join '|', @commands;
-    $re = qr#.+/(?:$new)(?:\s*\S+)?$#i;
+    $re = qr#.+/(?:$new)(?:\s+\S+)?$#i;
 }
 
 # pageup indicator in statusbar
