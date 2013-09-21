@@ -410,14 +410,19 @@ sub lastfm_print {
     return $text;
   }
   elsif (defined $witem->{type} && $witem->{type} =~ /^QUERY|CHANNEL$/) {
-    if (Irssi::settings_get_bool("lastfm_enter_buffer")) {
-       Irssi::gui_input_set($text);
-    }
-    elsif (Irssi::settings_get_bool("lastfm_use_action")) {
-      $witem->command("me $text");
+    if (Irssi::settings_get_bool("lastfm_use_action")) {
+      if (Irssi::settings_get_bool("lastfm_enter_buffer")) {
+         Irssi::gui_input_set("/me $text");
+      } else {
+        $witem->command("me $text");
+      }
     }
     else {
-      $witem->command("say $text");
+      if (Irssi::settings_get_bool("lastfm_enter_buffer")) {
+         Irssi::gui_input_set($text);
+      } else {
+        $witem->command("say $text");
+      }
     }
   }
   else {
