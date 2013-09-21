@@ -19,16 +19,22 @@ my $mc_nick = "zigdon";
 sub sig_printtext {
   my ($dest, $text, $stripped) = @_;
 
+  if (not $window) {
+    $window = Irssi::window_find_name('hilight');
+
+    return unless $window;
+  }
+
   if (($dest->{level} & (MSGLEVEL_HILIGHT|MSGLEVEL_MSGS)) and
       (($dest->{level} & MSGLEVEL_NOHILIGHT) == 0) and
       ($dest->{level} & MSGLEVEL_PUBLIC) and
       ($dest->{target} ne "#services") and
       ($dest->{target} ne "&bitlbee")) {
-    $window = Irssi::window_find_name('hilight');
 
     if ($dest->{level} & MSGLEVEL_PUBLIC) {
       $text = $dest->{target}.": ".$text;
     }
+
     if ($window) {
       $window->print(sprintf('%02d:%02d %s', (localtime)[2,1], $text), MSGLEVEL_NEVER);
     }
