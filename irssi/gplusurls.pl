@@ -27,6 +27,12 @@ sub cleanup {
     return;
   }
 
+  if ($line =~ m{https?://plus\.google\.com/}i and $line =~ s/e=(?:[\w,]+)&?//g) {
+    Irssi::signal_emit("send text", $line, $server, $witem);
+    Irssi::signal_stop();
+    return;
+  }
+
 }
 
 Irssi::signal_add('send text', \&cleanup);
