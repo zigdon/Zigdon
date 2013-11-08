@@ -1,18 +1,30 @@
 #!/bin/bash
 
-ZIP=$1
-if [[ ! -e $ZIP ]]; then
-  echo $ZIP not found.
+ARCHIVE=$1
+if [[ ! -e $ARCHIVE ]]; then
+  echo $ARCHIVE not found.
   exit 1
 fi
 
-CODE=$(dirname $0)
+CODE=$(cd $(dirname $0) && pwd -P )
 PROCESSOR=$CODE/googlevoice_to_sqlite.py
 SQL=$CODE/queries.sql
 
+if [[ ${ARCHIVE##*.} == "zip" ]]; then
+  CMD=unzip
+  ARG=
+elif [[ ${ARCHIVE##*.} == "tgz" ]]; then
+  CMD=tar
+  ARG=xvzf
+else
+  echo Unknown archive type.
+  exit 1
+fi
+
 DIR=$(mktemp -d)
 pushd $DIR
-unzip $ZIP > /dev/null
+
+$CMD $ARG $ARCHIVE > /dev/null
 
 # generate sqlite
 python $PROCESSOR */Voice/Calls < /dev/null
