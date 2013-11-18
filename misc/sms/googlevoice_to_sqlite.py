@@ -250,6 +250,7 @@ class gvoiceconn(sqlite3.Connection):
     def __init__(self, path):
         open(path, 'w').close() #wipes file in same path, since old records cannot be relied upon (name changes, etc.)
         sqlite3.Connection.__init__(self, path, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES)
+        self.text_factory = str
         #self = sqlite3.connect() #connect
         with open(os.path.join(os.path.dirname(__file__), 'initdb.sql'), 'r') as initdb:
             self.executescript(initdb.read()) #create data structures needed, ad defined in external file\
