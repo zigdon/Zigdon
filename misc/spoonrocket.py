@@ -2,7 +2,15 @@
 
 """ Monitor spoonrocket item availability. Will loop over the site's data feed
 until it finds the item is not sold out. Will exit with a status of 0 on
-success, 1 if there was an error. """
+success, 1 if there was an error. 
+
+The exit code allows to use this in a pipeline. Say, on OSX:
+
+$ gem install terminal-notifier
+$ ./spoonrocket.py -v && terminal-notifier -title 'Spoonrocket exists!' \
+-message "GO GO GO" -open http://www.spoonrocket.com
+
+"""
 
 import sys
 import httplib2
