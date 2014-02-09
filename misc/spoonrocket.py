@@ -48,10 +48,10 @@ while True:
 
     info = None
     for i in j['menu']:
-        if options.vegetarian and i['properties'].find('vegetarian') > -1:
+        if options.vegetarian and 'vegetarian' in i['properties']:
             info = i
             break
-        if not options.vegetarian and i['properties'].find('vegetarian') == -1:
+        if not options.vegetarian and not 'vegetarian' in i['properties']:
             info = i
             break
 
