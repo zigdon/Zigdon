@@ -55,12 +55,3 @@ while True:
 
     time.sleep(options.sleep)
 
-
-"""
-GET https://api.spoonrocket.com/userapi//menu?zone_id=8 | python -c "
-import json, sys
-j = json.loads(sys.stdin.read())
-for i in j['menu']:
-      if i['properties'].find('vegetarian') > -1:
-            print i['sold_out_temporarily'] and 'sold out' or i['qty']"
-"""
