@@ -53,6 +53,15 @@ where timerecordedutc > "2013-01-01" and timerecordedutc < "2014-01-01"
 group by name
 order by count(name) desc;
 
+.output people-2014.csv
+select Name, count(Name), sum(Incoming)
+from textmessage t 
+left join textconversation v on t.textconversationid = v.textconversationid
+left join contact c on c.contactid = v.contactid
+where timerecordedutc > "2014-01-01" and timerecordedutc < "2015-01-01"
+group by name
+order by count(name) desc;
+
 .output dates.csv
 select date(timerecordedutc) date, count(date(TimeRecordedUTC)) num
 from textmessage t 
