@@ -8,6 +8,8 @@ import humanize
 import re
 import evelink.cache.shelf
 
+from collections import defaultdict
+
 with open("/home/zigdon/.everc") as f:
     char_id = int(f.next())
     key_id = int(f.next())
@@ -20,6 +22,8 @@ char = evelink.char.Char(char_id=char_id, api=api)
 
 activity = char.wallet_journal()
 
+bounties = defaultdict(int)
+
 for entry in activity:
   date = humanize.naturalday(datetime.datetime.fromtimestamp(entry['timestamp']))
   if entry['amount'] >= 0:
@@ -29,7 +33,12 @@ for entry in activity:
   reason = entry['reason']
   if party == 'CONCORD' and re.match('\d+:\d', reason):
     reason = "Bounty"
+    bounties[date] += entry['amount']
 
   print "%10s | %26s | %12s | %16s | %s" % \
     (date, party, humanize.intcomma(entry['amount']),
     humanize.intcomma(entry['balance']), reason)
+
+print "\nBounties:"
+for date, value in bounties.iteritems():
+    print "%10s: %s" % (date, humanize.intcomma(value))
