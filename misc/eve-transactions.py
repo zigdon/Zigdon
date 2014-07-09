@@ -50,6 +50,5 @@ for eid, event in events.iteritems():
     for keyword in keywords:
         if keyword in event['title'].lower():
             start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
-            desc = event['description'].replace('<br />', '\n')
 
-            print "%s - %s\n%s\n" % (start, event['title'], desc)
+            print "%s - %s\n" % (start, event['title'])
