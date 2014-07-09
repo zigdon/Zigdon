@@ -14,6 +14,7 @@ with open("/home/zigdon/.everc") as f:
     char_id = int(f.next())
     key_id = int(f.next())
     vcode = f.next().strip()
+    keywords = f.next().lower().strip().split(',')
     f.close()
 
 api = evelink.api.API(api_key=(key_id, vcode),
@@ -42,3 +43,13 @@ for entry in activity:
 print "\nBounties:"
 for date, value in bounties.iteritems():
     print "%10s: %s" % (date, humanize.intcomma(value))
+
+print "\nUpcoming events of note:"
+events = char.calendar_events()
+for eid, event in events.iteritems():
+    for keyword in keywords:
+        if keyword in event['title'].lower():
+            start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
+            desc = event['description'].replace('<br />', '\n')
+
+            print "%s - %s\n%s\n" % (start, event['title'], desc)
