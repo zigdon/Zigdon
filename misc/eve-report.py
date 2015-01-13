@@ -29,6 +29,8 @@ for char_id, key_id, vcode, keywords in accounts:
     api = evelink.api.API(api_key=(key_id, vcode),
                           cache=evelink.cache.shelf.ShelveCache('/tmp/evecache-wallet'))
     char = evelink.char.Char(char_id=char_id, api=api)
+    sheet, _, _ = char.character_sheet()
+    print '==== %s ====' % sheet['name'].upper()
 
     journal, _, _ = char.wallet_journal(limit=500)
     categories = OrderedDict()
