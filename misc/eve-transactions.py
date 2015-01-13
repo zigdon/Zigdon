@@ -25,7 +25,7 @@ activity = char.wallet_journal()
 
 bounties = defaultdict(int)
 
-for entry in activity:
+for entry in activity[0]:
   date = humanize.naturalday(datetime.datetime.fromtimestamp(entry['timestamp']))
   if entry['amount'] >= 0:
     party = entry['party_1']['name']
@@ -46,7 +46,7 @@ for date, value in bounties.iteritems():
 
 print "\nUpcoming events of note:"
 events = char.calendar_events()
-for eid, event in events.iteritems():
+for eid, event in events[0].iteritems():
     for keyword in keywords:
         if keyword in event['title'].lower():
             start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
