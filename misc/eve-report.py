@@ -83,6 +83,29 @@ for eid, event in events[0].iteritems():
 
             print '%s - %s\n' % (start, event['title'])
 
+planets, _, _ = char.planetary_colonies()
+alerts = OrderedDict()
+for id, planet in planets.items():
+    name = planet['planet']['name']
+
+    alerts[name] = []
+    pins, _, _ = char.planetary_pins(id)
+    now = datetime.datetime.now()
+    for pin in pins.values():
+        pintype = pin['type']['name']
+        if re.search('Extractor', pintype):
+            end = datetime.datetime.fromtimestamp(pin['expiry_ts'])
+            timeleft = end - now
+            if timeleft < datetime.timedelta(1):
+                alerts[name].append('- extractor ends in %s' % timeleft)
+
+for planet, issues in alerts.items():
+    if not issues:
+        continue
+    print 'PI issues at %s:' % planet
+    for issue in issues:
+        print issue
+
 if False:
     print 'Transaction details:\n'
     print details
