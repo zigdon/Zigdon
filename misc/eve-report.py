@@ -6,7 +6,7 @@ import evelink
 import datetime
 import humanize
 import re
-import evelink.cache.shelf
+import evelink.cache.sqlite
 
 from collections import OrderedDict
 
@@ -27,10 +27,12 @@ def default_entry():
 for char_id, key_id, vcode, keywords in accounts:
 
     api = evelink.api.API(api_key=(key_id, vcode),
-                          cache=evelink.cache.shelf.ShelveCache('/tmp/evecache-wallet'))
+                          cache=evelink.cache.sqlite.SqliteCache(
+                            '/tmp/evecache-wallet.sq3'))
     char = evelink.char.Char(char_id=char_id, api=api)
     sheet, _, _ = char.character_sheet()
-    print '==== %s ====' % sheet['name'].upper()
+    name = sheet['name'].upper()
+    print '==== %s ====' % name
 
     journal, _, _ = char.wallet_journal(limit=500)
     categories = OrderedDict()
