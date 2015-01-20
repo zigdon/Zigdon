@@ -64,7 +64,7 @@ for char_id, key_id, vcode, keywords in accounts:
     for entry in transactions:
         date = humanize.naturalday(datetime.datetime.fromtimestamp(entry['timestamp']))
         if date not in categories:
-            continue
+            categories[date] = default_entry()
 
         if entry['action'] == 'buy':
             categories[date]['purchases'] += entry['price'] * entry['quantity']
