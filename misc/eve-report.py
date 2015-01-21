@@ -21,8 +21,12 @@ with open('/home/zigdon/.everc') as f:
         accounts.append((char_id, key_id, vcode, keywords))
     f.close()
 
-def default_entry():
-    return {'bounties': 0, 'duty': 0, 'sales': 0, 'purchases': 0}
+def default_entry(ts):
+    return {'timestamp': ts,
+            'bounties': 0,
+            'duty': 0,
+            'sales': 0,
+            'purchases': 0}
 
 for char_id, key_id, vcode, keywords in accounts:
 
@@ -35,10 +39,11 @@ for char_id, key_id, vcode, keywords in accounts:
     print '==== %s ====' % name
 
     journal, _, _ = char.wallet_journal(limit=500)
-    categories = OrderedDict()
+    categories = {}
     details = ''
     for entry in journal:
-        date = humanize.naturalday(datetime.datetime.fromtimestamp(entry['timestamp']))
+        ts = datetime.datetime.fromtimestamp(entry['timestamp'])
+        date = humanize.naturalday(ts)
         if entry['amount'] >= 0:
             party = entry['party_1']['name']
         else:
@@ -47,13 +52,13 @@ for char_id, key_id, vcode, keywords in accounts:
         if party == 'CONCORD' and re.match('\d+:\d', reason):
             reason = 'Bounty'
             if date not in categories:
-                categories[date] = default_entry()
+                categories[date] = default_entry(ts)
 
             categories[date]['bounties'] += entry['amount']
 
         if re.match('(import|export) duty', reason.lower()):
             if date not in categories:
-                categories[date] = default_entry()
+                categories[date] = default_entry(ts)
             categories[date]['duty'] += entry['amount']
 
         details += '%10s | %26s | %13s | %16s | %s\n' % \
@@ -62,9 +67,10 @@ for char_id, key_id, vcode, keywords in accounts:
 
     transactions, _, _ = char.wallet_transactions()
     for entry in transactions:
-        date = humanize.naturalday(datetime.datetime.fromtimestamp(entry['timestamp']))
+        ts = datetime.datetime.fromtimestamp(entry['timestamp'])
+        date = humanize.naturalday(ts)
         if date not in categories:
-            categories[date] = default_entry()
+            categories[date] = default_entry(ts)
 
         if entry['action'] == 'buy':
             categories[date]['purchases'] += entry['price'] * entry['quantity']
@@ -73,7 +79,9 @@ for char_id, key_id, vcode, keywords in accounts:
 
     print '\n%10s  %12s  %12s  %12s  %12s' % (
         'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
-    for date, cats in categories.iteritems():
+    for date in sorted(categories.keys(),
+                       key=lambda x: categories[x]['timestamp']):
+        cats = categories[date]
         print '%10s: %12s  %12s  %12s  %12s' % (
           date, humanize.intcomma(int(cats['bounties'])),
           humanize.intcomma(int(cats['duty'])),
