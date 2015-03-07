@@ -164,11 +164,15 @@ for item in feed.findAll('li'):
     Title: %s
     When: %s
 
-    %s
+    """ % (title, when)
 
+    if body is not None:
+        print body
+
+    print """
     <a href="%s">Link</a>
 
-    """ % (title, when, body, link)
+    """ % link
 
 if args.last_run:
     with open(args.last_run, "w") as f:
