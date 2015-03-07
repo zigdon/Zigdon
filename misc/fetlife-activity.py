@@ -3,10 +3,10 @@
 import sys
 sys.path.insert(0, '/home/zigdon/lib/code/github/zigdon/'
                    'misc/fetlife/lib/python2.7/site-packages')
-
 import argparse
 from datetime import datetime
 import logging
+import lxml.html
 import os
 import parsedatetime as pdt
 import mechanize
@@ -164,15 +164,12 @@ for item in feed.findAll('li'):
     Title: %s
     When: %s
 
-    """ % (title, when)
+    """ % (lxml.html.fromstring(title).text, when)
 
     if body is not None:
-        print body
+        print lxml.html.fromstring(body).text
 
-    print """
-    <a href="%s">Link</a>
-
-    """ % link
+    print "%s\n" % link
 
 if args.last_run:
     with open(args.last_run, "w") as f:
