@@ -67,7 +67,7 @@ for s in reversed(statuses):
 
 if message:
     if args.smtp:
-        msg = MIMEText(message.encode('UTF-8'))
+        msg = MIMEText(message.encode('UTF-8'), 'plain', 'UTF-8')
         msg['Subject'] = 'Twitter updates'
         msg['From'] = args.from_email
         msg['To'] = args.to_email
