@@ -6,8 +6,9 @@ import os
 import smtplib
 import twitter
 
-parser = argparse.ArgumentParser(description='Follow a weechat log, watch for a'
-                                 ' username email matches.')
+parser = argparse.ArgumentParser(description='Given a username on twitter, read'
+                                             ' their non-retweet, non-replies'
+                                             ' and send email updates.')
 parser.add_argument('--user')
 parser.add_argument('--to_email')
 parser.add_argument('--from_email')
