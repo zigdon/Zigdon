@@ -5,18 +5,21 @@ sys.path.insert(0, '/home/zigdon/lib/code/github/zigdon/'
                    'misc/fetlife/lib/python2.7/site-packages')
 import argparse
 from datetime import datetime
+from email.mime.text import MIMEText
 import logging
 import lxml.html
 import os
 import parsedatetime as pdt
 import mechanize
 import re
+import smtplib
 
 from BeautifulSoup import BeautifulSoup
 
 parser = argparse.ArgumentParser(description='Get activity feed from FetLife')
 parser.add_argument('--debug', '-n', action='store_true')
 parser.add_argument('--date')
+parser.add_argument('--email')
 parser.add_argument('--last_run')
 parser.add_argument('rc')
 
@@ -75,6 +78,7 @@ else:
     with open('/tmp/debug.html', 'r') as f:
       html = f.read()
 
+message = ''
 tree = BeautifulSoup(html)
 feed = tree.find(id='mini_feed')
 for item in feed.findAll('li'):
@@ -84,7 +88,8 @@ for item in feed.findAll('li'):
     if 'own status' in title:
         kind = 'comment_own_status'
         link = item.blockquote.a['href']
-        title = 'commented on their status'
+        status = item.span.string.split('\n')[3].strip()
+        title = 'commented on their status: %s' % status
         if item.blockquote.a is not None:
             item.blockquote.a.string = ''
         body = item.blockquote.text
@@ -124,7 +129,8 @@ for item in feed.findAll('li'):
     elif title.startswith('loved one of'):
         kind = 'loved'
         link = item.findAll('a')[1]['href']
-        title = "%s's post" % item.a.text
+        title = "loved %s's post" % item.a.text
+        body = item.blockquote.text
     elif title.startswith('is going to'):
         kind = 'going'
         title = item.a.text
@@ -134,6 +140,11 @@ for item in feed.findAll('li'):
     elif title.startswith('uploaded a new picture'):
         kind = 'new_picture'
         title = item.img['alt']
+    elif title.startswith('responded to'):
+        kind = 'responded'
+        links = tuple([i.text for i in item.span.findAll('a')])
+        title = "responded to %s's thread '%s' in %s" % links
+        body = item.blockquote.text
     elif title.startswith('went from might be going to is going to'):
         kind = 'now_going'
         title = item.a.text
@@ -160,16 +171,29 @@ for item in feed.findAll('li'):
     if cal_to_dt(when) < last_run:
         break
 
-    print """
-    Title: %s
-    When: %s
+    message += """
+Title: %s
+When: %s
 
-    """ % (lxml.html.fromstring(title).text, when)
+""" % (lxml.html.fromstring(title).text, when)
 
     if body is not None:
-        print lxml.html.fromstring(body).text
+        message += lxml.html.fromstring(body).text + "\n"
 
-    print "%s\n" % link
+    message += "    %s\n=====================\n" % link
+
+if args.email:
+    msg = MIMEText(message.encode('UTF-8'), 'plain', 'UTF-8')
+    msg['Subject'] = 'Updates from FL'
+    msg['From'] = args.email
+    msg['To'] = args.email
+
+    s = smtplib.SMTP('localhost')
+    s.set_debuglevel(0)
+    s.sendmail(args.email, [args.email], msg.as_string())
+    s.quit()
+else:
+    print message.encode('UTF-8')
 
 if args.last_run:
     with open(args.last_run, "w") as f:
