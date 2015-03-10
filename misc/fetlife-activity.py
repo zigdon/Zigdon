@@ -182,7 +182,7 @@ When: %s
 
     message += "    %s\n=====================\n" % link
 
-if args.email:
+if args.email and message != '':
     msg = MIMEText(message.encode('UTF-8'), 'plain', 'UTF-8')
     msg['Subject'] = 'Updates from FL'
     msg['From'] = args.email
