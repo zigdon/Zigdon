@@ -111,10 +111,13 @@ for char_id, key_id, vcode, keywords in accounts:
         for pin in pins.values():
             pintype = pin['type']['name']
             if re.search('Extractor', pintype):
-                end = datetime.datetime.fromtimestamp(pin['expiry_ts'])
-                timeleft = end - now
-                if timeleft < datetime.timedelta(1):
-                    alerts[name].append('- extractor ends in %s' % timeleft)
+                if pin['expiry_ts'] is not None:
+                    end = datetime.datetime.fromtimestamp(pin['expiry_ts'])
+                    timeleft = end - now
+                    if timeleft < datetime.timedelta(1):
+                        alerts[name].append('- extractor ends in %s' % timeleft)
+                else:
+                    alerts[name].append('* extractor idle!')
 
     for planet, issues in alerts.items():
         if not issues:
