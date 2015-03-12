@@ -133,17 +133,20 @@ for item in feed.findAll('li'):
         body = item.blockquote.text
     elif title.startswith('is going to'):
         kind = 'going'
-        title = item.a.text
+        title = 'going to %s' % item.a.text
     elif title.startswith('might be going'):
         kind = 'might_go'
-        title = item.a.text
+        title = 'might go to %s' % item.a.text
     elif title.startswith('uploaded a new picture'):
         kind = 'new_picture'
         title = item.img['alt']
+        body = item.img['src']
     elif title.startswith('responded to'):
         kind = 'responded'
         links = tuple([i.text for i in item.span.findAll('a')])
         title = "responded to %s's thread '%s' in %s" % links
+        link = item.blockquote.a['href']
+        item.blockquote.a.string = ''
         body = item.blockquote.text
     elif title.startswith('went from might be going to is going to'):
         kind = 'now_going'
@@ -157,8 +160,17 @@ for item in feed.findAll('li'):
         when = item.span.text
         title = 'Friended %s' % item.a.text
     else:
-        kind = 'status'
-        title = title
+        kind = 'other'
+        try:
+            if '/statuses/' in item.findAll('span')[1].a['href']:
+                kind = 'status'
+                title = title
+            else:
+                print "Unknown item: %r" % item
+                continue
+        except:
+            print "Unknown item: %r" % item
+            continue
 
     if when is None:
         when = item.findAll('span')[1].text
@@ -180,7 +192,7 @@ When: %s
     if body is not None:
         message += lxml.html.fromstring(body).text + "\n"
 
-    message += "    %s\n=====================\n" % link
+    message += "    %s\n===================== (%s)\n" % (link, kind)
 
 if args.email and message != '':
     msg = MIMEText(message.encode('UTF-8'), 'plain', 'UTF-8')
