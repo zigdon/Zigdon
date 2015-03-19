@@ -36,6 +36,13 @@ def cal_to_dt(d):
     return datetime(d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour,
                     d.tm_min, d.tm_sec)
 
+def fetch_post(br, url):
+    br.open(url)
+    html = br.response().read()
+    post = BeautifulSoup(html).article
+    body = '\n\n'.join(x.text for x in post.findAll('div')[1].findAll('p'))
+    return body
+
 # load activity since yesterday
 if args.date:
     last_run = cal_to_dt(args.date)
@@ -137,6 +144,10 @@ for item in feed.findAll('li'):
     elif title.startswith('might be going'):
         kind = 'might_go'
         title = 'might go to %s' % item.a.text
+    elif title.startswith('posted a journal entry'):
+        kind = 'journal'
+        title = 'Posted a journal entry: %s' % item.a.text
+        body = fetch_post(br, item.a['href'])
     elif title.startswith('uploaded a new picture'):
         kind = 'new_picture'
         title = item.img['alt']
