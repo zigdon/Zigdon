@@ -215,7 +215,7 @@ if args.email and message != '':
     s.set_debuglevel(0)
     s.sendmail(args.email, [args.email], msg.as_string())
     s.quit()
-else:
+elif message != '':
     print message.encode('UTF-8')
 
 if args.last_run:
