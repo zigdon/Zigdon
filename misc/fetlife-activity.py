@@ -92,96 +92,111 @@ for item in feed.findAll('li'):
     (kind, link, text, body, when) = (None, item.a['href'], None, None, None)
 
     title = item.span.text
-    if 'own status' in title:
-        kind = 'comment_own_status'
-        link = item.blockquote.a['href']
-        status = item.span.string.split('\n')[3].strip()
-        title = 'commented on their status: %s' % status
-        if item.blockquote.a is not None:
-            item.blockquote.a.string = ''
-        body = item.blockquote.text
-    elif title.startswith('commented on') and 'writing' in title:
-        kind = 'comment_writing'
-        post = item.findAll('a')[2]
-        title = "commented on %s's writing: %s" % (item.a.text, post.text)
-        link = post['href']
-        comment = item.blockquote
-        if comment.a is not None:
-            comment.a.string = ''
-        body = comment.text
-    elif title.startswith('commented on') and 'picture' in title:
-        kind = 'comment_picture'
-        link = item.findAll('span')[2].a['href']
-        title = "commented on %s's picture" % item.a.text
-        comment = item.findAll('span')[3]
-        if comment.a is not None:
-            comment.a.string = ''
-        body = comment.text
-    elif title.startswith('commented on') and 'status' in title:
-        kind = 'comment_status'
-        title = "commented on %s's status" % item.a.text
-        link = item.findAll('a')[1]['href']
-        if item.blockquote.a is not None:
-            item.blockquote.a.string = ''
-        body  = item.blockquote.text
-    elif title.startswith('joined the group'):
-        kind = 'joined'
-        title = 'joined a group: %s' % item.a.text
-    elif title.startswith('wrote on'):
-        kind = 'wrote_wall'
-        title = "%s's wall" % item.a.text
-        if item.blockquote.a is not None:
-            item.blockquote.a.string = ''
-        body = item.blockquote.text
-    elif title.startswith('loved one of'):
-        kind = 'loved'
-        link = item.findAll('a')[1]['href']
-        title = "loved %s's post" % item.a.text
-        body = item.blockquote.text
-    elif title.startswith('is going to'):
-        kind = 'going'
-        title = 'going to %s' % item.a.text
-    elif title.startswith('might be going'):
-        kind = 'might_go'
-        title = 'might go to %s' % item.a.text
-    elif title.startswith('posted a journal entry'):
-        kind = 'journal'
-        title = 'Posted a journal entry: %s' % item.a.text
-        body = fetch_post(br, item.a['href'])
-    elif title.startswith('uploaded a new picture'):
-        kind = 'new_picture'
-        title = item.img['alt']
-        body = item.img['src']
-    elif title.startswith('responded to'):
-        kind = 'responded'
-        links = tuple([i.text for i in item.span.findAll('a')])
-        title = "responded to %s's thread '%s' in %s" % links
-        link = item.blockquote.a['href']
-        item.blockquote.a.string = ''
-        body = item.blockquote.text
-    elif title.startswith('went from might be going to is going to'):
-        kind = 'now_going'
-        title = item.a.text
-    elif (title.startswith('updated his writing')
-          or title.startswith('updated her writing')):
-        kind = 'updated_writing'
-        title = 'Updated their post: %s' % item.a.text
-    elif re.match(r'\d* days ago$', title):
-        kind = 'friend'
-        when = item.span.text
-        title = 'Friended %s' % item.a.text
-    else:
-        kind = 'other'
-        try:
-            if '/statuses/' in item.findAll('span')[1].a['href']:
-                kind = 'status'
-                title = title
+    try:
+        if 'own status' in title:
+            kind = 'comment_own_status'
+            link = item.blockquote.a['href']
+            status = item.span.string.split('\n')[3].strip()
+            title = 'commented on their status: %s' % status
+            if item.blockquote.a is not None:
+                item.blockquote.a.string = ''
+            body = item.blockquote.text
+        elif title.startswith('commented on') and 'writing' in title:
+            kind = 'comment_writing'
+            post = item.findAll('a')[2]
+            title = "commented on %s's writing: %s" % (item.a.text, post.text)
+            link = post['href']
+            comment = item.blockquote
+            if comment.a is not None:
+                comment.a.string = ''
+            body = comment.text
+        elif title.startswith('commented on') and 'picture' in title:
+            kind = 'comment_picture'
+            link = item.findAll('span')[2].a['href']
+            title = "commented on %s's picture" % item.a.text
+            comment = item.findAll('span')[3]
+            if comment.a is not None:
+                comment.a.string = ''
+            body = comment.text
+        elif title.startswith('commented on') and 'status' in title:
+            kind = 'comment_status'
+            title = "commented on %s's status" % item.a.text
+            link = item.findAll('a')[1]['href']
+            if item.blockquote.a is not None:
+                item.blockquote.a.string = ''
+            body  = item.blockquote.text
+        elif title.startswith('joined the group'):
+            kind = 'joined'
+            title = 'joined a group: %s' % item.a.text
+        elif title.startswith('wrote on'):
+            kind = 'wrote_wall'
+            title = "%s's wall" % item.a.text
+            if item.blockquote.a is not None:
+                item.blockquote.a.string = ''
+            body = item.blockquote.text
+        elif title.startswith('loved one of'):
+            if title.contains('posts:'):
+                kind = 'loved_post'
+                link = item.findAll('a')[1]['href']
+                title = "loved %s's post" % item.a.text
+                body = item.blockquote.text
+            elif title.contains('pictures:'):
+                kind = 'loved_pic'
+                link = item.findAll('a')[1]['href']
+                title = "loved %s's picture" % item.a.text
+                body = item.img.alt
             else:
+                print "Unknown loved: %r" % item
+                continue
+
+        elif title.startswith('is going to'):
+            kind = 'going'
+            title = 'going to %s' % item.a.text
+        elif title.startswith('might be going'):
+            kind = 'might_go'
+            title = 'might go to %s' % item.a.text
+        elif title.startswith('posted a journal entry'):
+            kind = 'journal'
+            title = 'Posted a journal entry: %s' % item.a.text
+            body = fetch_post(br, item.a['href'])
+        elif title.startswith('uploaded a new picture'):
+            kind = 'new_picture'
+            title = item.img['alt']
+            body = item.img['src']
+        elif title.startswith('responded to'):
+            kind = 'responded'
+            links = tuple([i.text for i in item.span.findAll('a')])
+            title = "responded to %s's thread '%s' in %s" % links
+            if item.blockquote.a is not None:
+                link = item.blockquote.a['href']
+                item.blockquote.a.string = ''
+            body = item.blockquote.text
+        elif title.startswith('went from might be going to is going to'):
+            kind = 'now_going'
+            title = item.a.text
+        elif (title.startswith('updated his writing')
+            or title.startswith('updated her writing')):
+            kind = 'updated_writing'
+            title = 'Updated their post: %s' % item.a.text
+        elif re.match(r'\d* days ago$', title):
+            kind = 'friend'
+            when = item.span.text
+            title = 'Friended %s' % item.a.text
+        else:
+            kind = 'other'
+            try:
+                if '/statuses/' in item.findAll('span')[1].a['href']:
+                    kind = 'status'
+                    title = title
+                else:
+                    print "Unknown item: %r" % item
+                    continue
+            except:
                 print "Unknown item: %r" % item
                 continue
-        except:
-            print "Unknown item: %r" % item
-            continue
+    except Exception as e:
+        print "Unknown item (exception: %r): %r" % (e, item)
+        continue
 
     if when is None:
         when = item.findAll('span')[1].text
