@@ -115,7 +115,10 @@ for char_id, key_id, vcode, keywords in accounts:
                     end = datetime.datetime.fromtimestamp(pin['expiry_ts'])
                     timeleft = end - now
                     if timeleft < datetime.timedelta(1):
-                        alerts[name].append('- extractor ends in %s' % timeleft)
+                        if timeleft > datetime.timedelta(0):
+                            alerts[name].append('- extractor ends in %s' % timeleft)
+                        else:
+                            alerts[name].append('- extractor ended %s ago' % timeleft)
                 else:
                     alerts[name].append('* extractor idle!')
 
