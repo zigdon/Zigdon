@@ -125,6 +125,9 @@ for item in feed.findAll('li'):
             if item.blockquote.a is not None:
                 item.blockquote.a.string = ''
             body  = item.blockquote.text
+        elif title.startswith('in a relationship'):
+            kind = 'in_relationshop'
+            title = 'In a relationship with %s' % item.a.text
         elif title.startswith('joined the group'):
             kind = 'joined'
             title = 'joined a group: %s' % item.a.text
@@ -135,12 +138,12 @@ for item in feed.findAll('li'):
                 item.blockquote.a.string = ''
             body = item.blockquote.text
         elif title.startswith('loved one of'):
-            if title.contains('posts:'):
+            if 'posts:' in title:
                 kind = 'loved_post'
                 link = item.findAll('a')[1]['href']
                 title = "loved %s's post" % item.a.text
                 body = item.blockquote.text
-            elif title.contains('pictures:'):
+            elif 'pictures:' in title:
                 kind = 'loved_pic'
                 link = item.findAll('a')[1]['href']
                 title = "loved %s's picture" % item.a.text
