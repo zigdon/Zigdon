@@ -125,6 +125,10 @@ for item in feed.findAll('li'):
             if item.blockquote.a is not None:
                 item.blockquote.a.string = ''
             body  = item.blockquote.text
+        elif '  became friends with' in item.text:
+            kind = 'new_friend'
+            title = 'became friends with %s' % item.a.text
+            when = item.span.text
         elif '  in a relationship' in item.text:
             kind = 'in_relationshop'
             title = 'is in a relationship with %s' % item.a.text
