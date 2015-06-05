@@ -28,7 +28,7 @@ def default_entry(ts):
             'sales': 0,
             'purchases': 0}
 
-def get_tx_details(journal):
+def get_journal_tx(journal):
     types = {}
     details = []
     for transaction in journal:
@@ -71,7 +71,7 @@ for char_id, key_id, vcode, keywords in accounts:
     print '==== %s ====' % name
 
     journal, _, _ = char.wallet_journal(limit=500)
-    categories, tx_details = get_tx_details(journal)
+    categories, tx_details = get_journal_tx(journal)
 
     transactions, _, _ = char.wallet_transactions()
     for entry in transactions:
