@@ -60,6 +60,20 @@ def get_journal_tx(journal):
 
     return types, details
 
+def add_market_tx(categories, transactions):
+    for transaction in transactions:
+        timestamp = datetime.datetime.fromtimestamp(transaction['timestamp'])
+        day = humanize.naturalday(timestamp)
+        if day not in categories:
+            categories[day] = default_entry(timestamp)
+
+        if transaction['action'] == 'buy':
+            categories[day]['purchases'] += transaction['price'] * transaction['quantity']
+        elif transaction['action'] == 'sell':
+            categories[day]['sales'] += transaction['price'] * transaction['quantity']
+
+    return categories
+
 for char_id, key_id, vcode, keywords in accounts:
 
     api = evelink.api.API(api_key=(key_id, vcode),
@@ -74,22 +88,13 @@ for char_id, key_id, vcode, keywords in accounts:
     categories, tx_details = get_journal_tx(journal)
 
     transactions, _, _ = char.wallet_transactions()
-    for entry in transactions:
-        ts = datetime.datetime.fromtimestamp(entry['timestamp'])
-        date = humanize.naturalday(ts)
-        if date not in categories:
-            categories[date] = default_entry(ts)
-
-        if entry['action'] == 'buy':
-            categories[date]['purchases'] += entry['price'] * entry['quantity']
-        elif entry['action'] == 'sell':
-            categories[date]['sales'] += entry['price'] * entry['quantity']
+    categories = add_market_tx(categories, transactions)
 
     if categories or journal:
         print '\n%10s  %12s  %12s  %12s  %12s' % (
             'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
         for date in sorted(categories.keys(),
-                        key=lambda x: categories[x]['timestamp']):
+                           key=lambda x: categories[x]['timestamp']):
             cats = categories[date]
             print '%10s: %12s  %12s  %12s  %12s' % (
                 date, humanize.intcomma(int(cats['bounties'])),
