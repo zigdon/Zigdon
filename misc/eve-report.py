@@ -85,19 +85,26 @@ for char_id, key_id, vcode, keywords in accounts:
         elif entry['action'] == 'sell':
             categories[date]['sales'] += entry['price'] * entry['quantity']
 
-    print '\n%10s  %12s  %12s  %12s  %12s' % (
-        'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
-    for date in sorted(categories.keys(),
-                       key=lambda x: categories[x]['timestamp']):
-        cats = categories[date]
-        print '%10s: %12s  %12s  %12s  %12s' % (
-            date, humanize.intcomma(int(cats['bounties'])),
-            humanize.intcomma(int(cats['duty'])),
-            humanize.intcomma(int(cats['sales'])),
-            humanize.intcomma(int(cats['purchases'])),
-        )
+    if categories or journal:
+        print '\n%10s  %12s  %12s  %12s  %12s' % (
+            'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
+        for date in sorted(categories.keys(),
+                        key=lambda x: categories[x]['timestamp']):
+            cats = categories[date]
+            print '%10s: %12s  %12s  %12s  %12s' % (
+                date, humanize.intcomma(int(cats['bounties'])),
+                humanize.intcomma(int(cats['duty'])),
+                humanize.intcomma(int(cats['sales'])),
+                humanize.intcomma(int(cats['purchases'])),
+            )
 
-    print '\nBalance: %s' % humanize.intcomma(int(journal[-1]['balance']))
+        if journal:
+            print '\nBalance: %s' % humanize.intcomma(int(journal[-1]['balance']))
+
+    if not journal:
+        info, _, _ = char.wallet_info()
+        print '\nBalance: %s' % humanize.intcomma(info['balance'])
+
 
     print '\nUpcoming events of note:'
     events = char.calendar_events()
@@ -137,7 +144,7 @@ for char_id, key_id, vcode, keywords in accounts:
         for issue in issues:
             print issue
 
-    if True:
+    if False:
         print 'Transaction details:\n'
         for entry in tx_details:
             print '{date} | {party:26} | {amount:13,} | {balance:16,} | {reason}'.format(**entry)
