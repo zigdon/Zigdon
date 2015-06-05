@@ -28,7 +28,8 @@ def default_entry(ts):
             'sales': 0,
             'purchases': 0}
 
-def get_journal_tx(journal):
+def get_journal_tx():
+    journal, _, _ = char.wallet_journal(limit=500)
     types = {}
     details = []
     for transaction in journal:
@@ -60,7 +61,8 @@ def get_journal_tx(journal):
 
     return types, details
 
-def add_market_tx(categories, transactions):
+def add_market_tx(categories):
+    transactions, _, _ = char.wallet_transactions()
     for transaction in transactions:
         timestamp = datetime.datetime.fromtimestamp(transaction['timestamp'])
         day = humanize.naturalday(timestamp)
@@ -74,6 +76,18 @@ def add_market_tx(categories, transactions):
 
     return categories
 
+def search_calendar(keyword_list):
+    cal_items = char.calendar_events()
+    items = []
+    for _, event in cal_items[0].iteritems():
+        for keyword in keywords:
+            if keyword in event['title'].lower():
+                start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
+
+                items.append('%s - %s' % (start, event['title']))
+
+    return items
+
 for char_id, key_id, vcode, keywords in accounts:
 
     api = evelink.api.API(api_key=(key_id, vcode),
@@ -82,15 +96,13 @@ for char_id, key_id, vcode, keywords in accounts:
     char = evelink.char.Char(char_id=char_id, api=api)
     sheet, _, _ = char.character_sheet()
     name = sheet['name'].upper()
-    print '==== %s ====' % name
+    print '\n\n==== %s ====' % name
 
-    journal, _, _ = char.wallet_journal(limit=500)
-    categories, tx_details = get_journal_tx(journal)
+    categories, tx_details = get_journal_tx()
 
-    transactions, _, _ = char.wallet_transactions()
-    categories = add_market_tx(categories, transactions)
+    categories = add_market_tx(categories)
 
-    if categories or journal:
+    if categories:
         print '\n%10s  %12s  %12s  %12s  %12s' % (
             'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
         for date in sorted(categories.keys(),
@@ -103,22 +115,17 @@ for char_id, key_id, vcode, keywords in accounts:
                 humanize.intcomma(int(cats['purchases'])),
             )
 
-        if journal:
-            print '\nBalance: %s' % humanize.intcomma(int(journal[-1]['balance']))
-
-    if not journal:
-        info, _, _ = char.wallet_info()
-        print '\nBalance: %s' % humanize.intcomma(info['balance'])
+    info, _, _ = char.wallet_info()
+    print '\nBalance: %s' % humanize.intcomma(info['balance'])
 
 
-    print '\nUpcoming events of note:'
-    events = char.calendar_events()
-    for eid, event in events[0].iteritems():
-        for keyword in keywords:
-            if keyword in event['title'].lower():
-                start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
+    events = []
+    if keywords:
+        events.extend(search_calendar(keywords))
 
-                print '%s - %s\n' % (start, event['title'])
+    if events:
+        print '\nUpcoming events of note:'
+        print '\n'.join(['  %s' % e for e in events])
 
     planets, _, _ = char.planetary_colonies()
     alerts = OrderedDict()
