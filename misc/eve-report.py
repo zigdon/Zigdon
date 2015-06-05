@@ -10,8 +10,8 @@ import evelink.cache.sqlite
 
 from collections import OrderedDict
 
-accounts = []
 with open('/home/zigdon/.everc') as f:
+    accounts = []
     for line in f:
         char_id, key_id, vcode, keywords = line.split(',', 3)
         char_id = int(char_id)
@@ -28,42 +28,50 @@ def default_entry(ts):
             'sales': 0,
             'purchases': 0}
 
+def get_tx_details(journal):
+    types = {}
+    details = []
+    for transaction in journal:
+        timestamp = datetime.datetime.fromtimestamp(transaction['timestamp'])
+        day = humanize.naturalday(timestamp)
+        if transaction['amount'] >= 0:
+            party = transaction['party_1']['name']
+        else:
+            party = transaction['party_2']['name']
+        reason = transaction['reason']
+        if party == 'CONCORD' and re.match(r'\d+:\d', reason):
+            reason = 'Bounty'
+            if day not in types:
+                types[day] = default_entry(timestamp)
+
+            types[day]['bounties'] += transaction['amount']
+
+        if re.match('(import|export) duty', reason.lower()):
+            if day not in types:
+                types[day] = default_entry(timestamp)
+            types[day]['duty'] += transaction['amount']
+
+        details.append({'date': day,
+                        'party': party,
+                        'amount': transaction['amount'],
+                        'balance': transaction['balance'],
+                        'reason': reason})
+
+
+    return types, details
+
 for char_id, key_id, vcode, keywords in accounts:
 
     api = evelink.api.API(api_key=(key_id, vcode),
                           cache=evelink.cache.sqlite.SqliteCache(
-                            '/tmp/evecache-wallet.sq3'))
+                              '/tmp/evecache-wallet.sq3'))
     char = evelink.char.Char(char_id=char_id, api=api)
     sheet, _, _ = char.character_sheet()
     name = sheet['name'].upper()
     print '==== %s ====' % name
 
     journal, _, _ = char.wallet_journal(limit=500)
-    categories = {}
-    details = ''
-    for entry in journal:
-        ts = datetime.datetime.fromtimestamp(entry['timestamp'])
-        date = humanize.naturalday(ts)
-        if entry['amount'] >= 0:
-            party = entry['party_1']['name']
-        else:
-            party = entry['party_2']['name']
-        reason = entry['reason']
-        if party == 'CONCORD' and re.match('\d+:\d', reason):
-            reason = 'Bounty'
-            if date not in categories:
-                categories[date] = default_entry(ts)
-
-            categories[date]['bounties'] += entry['amount']
-
-        if re.match('(import|export) duty', reason.lower()):
-            if date not in categories:
-                categories[date] = default_entry(ts)
-            categories[date]['duty'] += entry['amount']
-
-        details += '%10s | %26s | %13s | %16s | %s\n' % \
-          (date, party, humanize.intcomma(entry['amount']),
-          humanize.intcomma(entry['balance']), reason)
+    categories, tx_details = get_tx_details(journal)
 
     transactions, _, _ = char.wallet_transactions()
     for entry in transactions:
@@ -83,11 +91,11 @@ for char_id, key_id, vcode, keywords in accounts:
                        key=lambda x: categories[x]['timestamp']):
         cats = categories[date]
         print '%10s: %12s  %12s  %12s  %12s' % (
-          date, humanize.intcomma(int(cats['bounties'])),
-          humanize.intcomma(int(cats['duty'])),
-          humanize.intcomma(int(cats['sales'])),
-          humanize.intcomma(int(cats['purchases'])),
-          )
+            date, humanize.intcomma(int(cats['bounties'])),
+            humanize.intcomma(int(cats['duty'])),
+            humanize.intcomma(int(cats['sales'])),
+            humanize.intcomma(int(cats['purchases'])),
+        )
 
     print '\nBalance: %s' % humanize.intcomma(int(journal[-1]['balance']))
 
@@ -102,11 +110,11 @@ for char_id, key_id, vcode, keywords in accounts:
 
     planets, _, _ = char.planetary_colonies()
     alerts = OrderedDict()
-    for id, planet in planets.items():
+    for planet_id, planet in planets.items():
         name = planet['planet']['name']
 
         alerts[name] = []
-        pins, _, _ = char.planetary_pins(id)
+        pins, _, _ = char.planetary_pins(planet_id)
         now = datetime.datetime.now()
         for pin in pins.values():
             pintype = pin['type']['name']
@@ -129,6 +137,8 @@ for char_id, key_id, vcode, keywords in accounts:
         for issue in issues:
             print issue
 
-    if False:
+    if True:
         print 'Transaction details:\n'
-        print details
+        for entry in tx_details:
+            print '{date} | {party:26} | {amount:13,} | {balance:16,} | {reason}'.format(**entry)
+
