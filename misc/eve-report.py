@@ -51,6 +51,8 @@ SIZES = (0.01, 0.38, 1.5, 6)
 for v in ITEMS.values():
     v['size'] = SIZES[v['tier']]
 
+SPACE = {'Launchpad': 10000, 'Storage': 12000}
+
 with open('/home/zigdon/.everc') as f:
     accounts = []
     for line in f:
@@ -135,10 +137,23 @@ def get_planetary_alerts():
             'has': defaultdict(int),    # id: qty
         }
 
+    def planet_summary(data):
+        for section in ('makes', 'has', 'needs'):
+            print '  %s:' % section.upper()
+            for resource in sorted(data[section],
+                                   key=lambda x: (ITEMS[x]['tier'], ITEMS[x]['name'])):
+                print '    %-21s %d (%d m3)' % (
+                    ITEMS[resource]['name'],
+                    data[section][resource],
+                    ITEMS[resource]['size'] * data[section][resource])
+
+
     planet_state = defaultdict(blank_planet)
 
     for planet_id, planet_info in planets.items():
-        planet_name = planet_info['planet']['name']
+        planet_name = '%s: %s' % (
+            planet_info['planet']['type_name'],
+            planet_info['planet']['name'])
 
         planet_alerts[planet_name] = []
         routes, _, _ = char.planetary_routes(planet_id)
@@ -153,13 +168,16 @@ def get_planetary_alerts():
                     timeleft = end - now
                     if timeleft < datetime.timedelta(1):
                         if timeleft > datetime.timedelta(0):
-                            planet_alerts[planet_name].append('- extractor ends in %s' % timeleft)
+                            planet_alerts[planet_name].append(
+                                'extractor ends in %s' % timeleft)
                         else:
-                            planet_alerts[planet_name].append('- extractor ended %s ago' % timeleft)
+                            planet_alerts[planet_name].append(
+                                'extractor ended %s ago' % timeleft)
                 else:
-                    planet_alerts[planet_name].append('* extractor idle!')
+                    planet_alerts[planet_name].append('extractor idle!')
 
             if pin['id'] in route_map:
+                delta = 0
                 for route_id in route_map[pin['id']]:
                     route = routes[route_id]
                     qty = route['quantity']
@@ -169,23 +187,57 @@ def get_planetary_alerts():
                             'type_id': type_id,
                             'name': route['content']['name']}
 
-                    if route['source_id'] == pin['id']:
+                    if pin_type == 'Extractor':
+                        planet_state[planet_id]['makes'][type_id] = qty
+                    elif route['source_id'] == pin['id']:
                         qty *= -1
 
                     if pin_type in ('Basic', 'Advanced'):
                         if qty < 0:
-                            planet_state[planet_id]['needs'][type_id] -= qty
+                            planet_state[planet_id]['makes'][type_id] -= qty
                         else:
-                            planet_state[planet_id]['makes'][type_id] += qty
+                            planet_state[planet_id]['needs'][type_id] += qty
+
+                # check that we have enough storage for the next day
+                if pin_type in ('Launchpad', 'Storage') and delta > 0:
+                    total_space = SPACE[pin_type]
+                    delta *= 24
+                    used_space = sum(
+                        [ITEMS[x['type']]['size'] * x['quantity']
+                         for x in pin['contents'].values()])
+
+                    if used_space + delta > total_space:
+                        waste = used_space + delta - total_space
+                        planet_alerts[planet_name].append(
+                            'will run out of space: %d m3 wasted.' % waste)
+
+
 
             if pin_type in ('Storage', 'Launchpad'):
-                planet_state[planet_id]['has'] = {
-                    x['type']: x['quantity'] for x in pin['contents'].values()}
+                planet_state[planet_id]['has'].update({
+                    x['type']: x['quantity'] for x in pin['contents'].values()})
 
-        print "State for %s:\n  %r" % (planet_name, planet_state[planet_id])
+        if False:
+            print "\n\nState for %s:\n" % planet_name
+            planet_summary(planet_state[planet_id])
 
+        # check that we have what we need for the next day
+        for item_id in planet_state[planet_id]['needs']:
+            needs = planet_state[planet_id]['needs'][item_id]
+            has = planet_state[planet_id]['has'].get(item_id, 0)
+            makes = planet_state[planet_id]['makes'].get(item_id, 0)
+
+            delta = (needs - makes)*24.0
+            if has < delta:
+                planet_alerts[planet_name].append(
+                    '%-21s | Have: %7d | Make: %4d | Need: %5d | Short: %4d' % (
+                        ITEMS[item_id]['name'], has, makes, needs, has-delta))
 
     return planet_alerts
+
+FILTER = None
+if len(sys.argv) > 1:
+    FILTER = sys.argv[1]
 
 for char_id, key_id, vcode, keywords in accounts:
     api = evelink.api.API(api_key=(key_id, vcode),
@@ -193,7 +245,14 @@ for char_id, key_id, vcode, keywords in accounts:
                               '/tmp/evecache-wallet.sq3'))
     char = evelink.char.Char(char_id=char_id, api=api)
     sheet, _, _ = char.character_sheet()
+
     char_name = sheet['name'].upper()
+
+    if FILTER is not None:
+        if FILTER.upper() not in char_name:
+            print 'Skipping %s.' % char_name
+            continue
+
     print '\n\n==== %s ====' % char_name
 
     categories, tx_details = get_journal_tx()
@@ -224,14 +283,14 @@ for char_id, key_id, vcode, keywords in accounts:
     if events:
         print '\nUpcoming events of note:'
         print '\n'.join(['  %s' % e for e in events])
+        print '\n'
 
     alerts = get_planetary_alerts()
     for planet, issues in alerts.items():
         if not issues:
             continue
-        print 'PI issues at %s:' % planet
         for issue in issues:
-            print issue
+            print '%-28s | %s' % (planet, issue)
 
     if False:
         print 'Transaction details:\n'
