@@ -132,6 +132,9 @@ for item in feed.findAll('li'):
         elif '  in a relationship' in item.text:
             kind = 'in_relationshop'
             title = 'is in a relationship with %s' % item.a.text
+        elif title.startswith('in a relationship'):
+            kind = 'in_relationshop'
+            title = 'In a relationship with %s' % item.a.text
         elif title.startswith('joined the group'):
             kind = 'joined'
             title = 'joined a group: %s' % item.a.text
