@@ -12,39 +12,50 @@ from collections import OrderedDict, defaultdict
 
 ITEMS = {
     # P0
-    2073: {'tier': 0, 'name': 'Microorganisms', 'type_id': 2073},
-    2267: {'tier': 0, 'name': 'Base Metals', 'type_id': 2267},
-    2268: {'tier': 0, 'name': 'Aqueous Liquids', 'type_id': 2268},
-    2270: {'tier': 0, 'name': 'Noble Metals', 'type_id': 2270},
-    2286: {'tier': 0, 'name': 'Planktic Colonies', 'type_id': 2286},
-    2288: {'tier': 0, 'name': 'Carbon Compounds', 'type_id': 2288},
-    2305: {'tier': 0, 'name': 'Autotrophs', 'type_id': 2305},
-    2307: {'tier': 0, 'name': 'Felsic Magma', 'type_id': 2307},
-    2308: {'tier': 0, 'name': 'Suspended Plasma', 'type_id': 2308},
-    2310: {'tier': 0, 'name': 'Noble Gas', 'type_id': 2310},
-    2311: {'tier': 0, 'name': 'Reactive Gas', 'type_id': 2311},
+    2073: {'tier': 0, 'name': 'Microorganisms', 'type_id': 2073, 'req': []},
+    2267: {'tier': 0, 'name': 'Base Metals', 'type_id': 2267, 'req': []},
+    2268: {'tier': 0, 'name': 'Aqueous Liquids', 'type_id': 2268, 'req': []},
+    2270: {'tier': 0, 'name': 'Noble Metals', 'type_id': 2270, 'req': []},
+    2272: {'tier': 0, 'name': 'Heavy Metals', 'type_id': 2272, 'req': []},
+    2286: {'tier': 0, 'name': 'Planktic Colonies', 'type_id': 2286, 'req': []},
+    2288: {'tier': 0, 'name': 'Carbon Compounds', 'type_id': 2288, 'req': []},
+    2305: {'tier': 0, 'name': 'Autotrophs', 'type_id': 2305, 'req': []},
+    2306: {'tier': 0, 'name': 'Non-CS Crystals', 'type_id': 2306, 'req': []},
+    2307: {'tier': 0, 'name': 'Felsic Magma', 'type_id': 2307, 'req': []},
+    2308: {'tier': 0, 'name': 'Suspended Plasma', 'type_id': 2308, 'req': []},
+    2309: {'tier': 0, 'name': 'Ionic Solutions', 'type_id': 2309, 'req': []},
+    2310: {'tier': 0, 'name': 'Noble Gas', 'type_id': 2310, 'req': []},
+    2311: {'tier': 0, 'name': 'Reactive Gas', 'type_id': 2311, 'req': []},
     # P1
-    2317: {'tier': 1, 'name': 'Oxides', 'type_id': 2317},
-    2389: {'tier': 1, 'name': 'Plasmoids', 'type_id': 2389},
-    2392: {'tier': 1, 'name': 'Oxidizing Compound', 'type_id': 2392},
-    2393: {'tier': 1, 'name': 'Bacteria', 'type_id': 2393},
-    2396: {'tier': 1, 'name': 'Biofuels', 'type_id': 2396},
-    2397: {'tier': 1, 'name': 'Industrial Fibers', 'type_id': 2397},
-    2398: {'tier': 1, 'name': 'Reactive Metals', 'type_id': 2398},
-    2399: {'tier': 1, 'name': 'Precious Metals', 'type_id': 2399},
-    3645: {'tier': 1, 'name': 'Water', 'type_id': 3645},
-    3683: {'tier': 1, 'name': 'Oxygen', 'type_id': 3683},
-    3779: {'tier': 1, 'name': 'Biomass', 'type_id': 3779},
-    9828: {'tier': 1, 'name': 'Silicon', 'type_id': 9828},
+    2389: {'tier': 1, 'name': 'Plasmoids', 'type_id': 2389, 'req': [2308]},
+    2390: {'tier': 1, 'name': 'Electrolytes', 'type_id': 2390, 'req': [2309]},
+    2392: {'tier': 1, 'name': 'Oxidizing Compound', 'type_id': 2392, 'req': [2311]},
+    2393: {'tier': 1, 'name': 'Bacteria', 'type_id': 2393, 'req': [2073]},
+    2396: {'tier': 1, 'name': 'Biofuels', 'type_id': 2396, 'req': [2288]},
+    2397: {'tier': 1, 'name': 'Industrial Fibers', 'type_id': 2397, 'req': [2305]},
+    2398: {'tier': 1, 'name': 'Reactive Metals', 'type_id': 2398, 'req': [2267]},
+    2399: {'tier': 1, 'name': 'Precious Metals', 'type_id': 2399, 'req': [2310]},
+    2400: {'tier': 1, 'name': 'Toxic Metals', 'type_id': 2400, 'req': [2306]},
+    2401: {'tier': 1, 'name': 'Chiral Structures', 'type_id': 2401, 'req': [2306]},
+    3645: {'tier': 1, 'name': 'Water', 'type_id': 3645, 'req': [2268]},
+    3683: {'tier': 1, 'name': 'Oxygen', 'type_id': 3683, 'req': [2310]},
+    3779: {'tier': 1, 'name': 'Biomass', 'type_id': 3779, 'req': [2286]},
+    9828: {'tier': 1, 'name': 'Silicon', 'type_id': 9828, 'req': [2307]},
     # P2
-    2312: {'tier': 2, 'name': 'Supertensile Plastics', 'type_id': 2312},
-    2327: {'tier': 2, 'name': 'Microfiber Shielding', 'type_id': 2327},
-    2329: {'tier': 2, 'name': 'Biocells', 'type_id': 2329},
-    2463: {'tier': 2, 'name': 'Nanites', 'type_id': 2463},
-    9838: {'tier': 2, 'name': 'Superconductors', 'type_id': 9838},
+    44: {'tier': 2, 'name': 'Enriched Uranium', 'type_id': 44, 'req': [2399, 2400]},
+    2312: {'tier': 2, 'name': 'Supertensile Plastics', 'type_id': 2312, 'req': [3683, 3779]},
+    2317: {'tier': 2, 'name': 'Oxides', 'type_id': 2317, 'req': [3683, 2392]},
+    2327: {'tier': 2, 'name': 'Microfiber Shielding', 'type_id': 2327, 'req': [2397, 9828]},
+    2329: {'tier': 2, 'name': 'Biocells', 'type_id': 2329, 'req': [2396, 2399]},
+    2463: {'tier': 2, 'name': 'Nanites', 'type_id': 2463, 'req': [2393, 2398]},
+    3689: {'tier': 2, 'name': 'Mechanical Parts', 'type_id': 3689, 'req': [2398, 2399]},
+    9832: {'tier': 2, 'name': 'Coolant', 'type_id': 9832, 'req': [2390, 3645]},
+    9836: {'tier': 2, 'name': 'Consumer Electronics', 'type_id': 9836, 'req': [2400, 2401]},
+    9838: {'tier': 2, 'name': 'Superconductors', 'type_id': 9838, 'req': [2389, 3645]},
     # P3
-    2348: {'tier': 3, 'name': 'Gel-Matrix Biopaste', 'type_id': 2348},
-    17392: {'tier': 3, 'name': 'Data Chips', 'type_id': 17392},
+    2348: {'tier': 3, 'name': 'Gel-Matrix Biopaste', 'type_id': 2348, 'req': [3683, 2329, 9838]},
+    9848: {'tier': 3, 'name': 'Robotics', 'type_id': 9848, 'req': [3689, 9836]},
+    17392: {'tier': 3, 'name': 'Data Chips', 'type_id': 17392, 'req': [2312, 2327]},
 }
 
 SIZES = (0.01, 0.38, 1.5, 6)
@@ -127,6 +138,9 @@ def get_planetary_alerts():
     planets, _, _ = char.planetary_colonies()
     planet_alerts = OrderedDict()
 
+    def name(type_id):
+        return ITEMS[type_id]['name']
+
     def get_pin_type(name):
         return name.split()[1]
 
@@ -141,11 +155,38 @@ def get_planetary_alerts():
         for section in ('makes', 'has', 'needs'):
             print '  %s:' % section.upper()
             for resource in sorted(data[section],
-                                   key=lambda x: (ITEMS[x]['tier'], ITEMS[x]['name'])):
-                print '    %-21s %d (%d m3)' % (
-                    ITEMS[resource]['name'],
+                                   key=lambda x: (ITEMS[x]['tier'], name(x))):
+                print '    %-21s %d (%d m3) [%s]' % (
+                    name(resource),
                     data[section][resource],
-                    ITEMS[resource]['size'] * data[section][resource])
+                    ITEMS[resource]['size'] * data[section][resource],
+                    ', '.join([name(x) for x in ITEMS[resource]['req']])
+                )
+
+    def find_yield(state, item_id, bottlenecks=None):
+        if bottlenecks is None:
+            bottlenecks = []
+        reqs = [x for x in ITEMS[item_id]['req'] if x in state['makes']]
+        if reqs:
+            ratios = []
+            for r in reqs:
+                make, bottlenecks = find_yield(state, r, bottlenecks)
+                ratio = (0.0 + make + state['has'][r])/state['needs'][r]
+                if ratio < 1.0:
+                    bottlenecks.append(
+                        '%s (%d%%)' % (ITEMS[r]['name'], 100.0*ratio))
+                ratios.append(ratio)
+            ratio = min(ratios + [1.0])
+        else:
+            ratio = 1.0
+
+        print 'Checking bottlenecks for %s: makes %d, has %d (%d).' % (
+            name(item_id),
+            ratio * state['makes'][item_id],
+            state['has'][item_id],
+            ratio * 100)
+        return ratio * state['makes'][item_id], bottlenecks
+
 
 
     planet_state = defaultdict(blank_planet)
@@ -217,23 +258,45 @@ def get_planetary_alerts():
                 planet_state[planet_id]['has'].update({
                     x['type']: x['quantity'] for x in pin['contents'].values()})
 
-        if False:
+        if True:
             print "\n\nState for %s:\n" % planet_name
             planet_summary(planet_state[planet_id])
 
         # check that we have what we need for the next day
-        for item_id in planet_state[planet_id]['needs']:
-            needs = planet_state[planet_id]['needs'][item_id]
+        alert = None
+        tier = max([ITEMS[x]['tier'] for x in planet_state[planet_id]['makes']])
+        for item_id in planet_state[planet_id]['makes']:
+            if ITEMS[item_id]['tier'] != tier:
+                continue
+
+            pi_yield, bottlenecks = find_yield(planet_state[planet_id], item_id)
+            if bottlenecks:
+                ratio = 100.0 * pi_yield / planet_state[planet_id]['makes'][item_id]
+                planet_alerts[planet_name].append(
+                    'Manufacturing %s at %d%% capacity: %r' % (
+                        ITEMS[item_id]['name'], ratio, bottlenecks))
+
+
+
+        if alert is not None:
+            planet_alerts[planet_name].append(alert)
+
+    return planet_alerts
+
+"""
+            needs = planet_state[planet_id]['needs'].get(item_id, 0)
             has = planet_state[planet_id]['has'].get(item_id, 0)
             makes = planet_state[planet_id]['makes'].get(item_id, 0)
 
             delta = (needs - makes)*24.0
-            if has < delta:
-                planet_alerts[planet_name].append(
-                    '%-21s | Have: %7d | Make: %4d | Need: %5d | Short: %4d' % (
-                        ITEMS[item_id]['name'], has, makes, needs, has-delta))
+            #if has < delta:
+            if True:
+                alert = ('%-21s | Have: %7d | Make: %4d |'
+                         ' Need: %5d | Short: %4d' % (
+                             ITEMS[item_id]['name'], has, makes, needs, has-delta))
+                print alert
+                """
 
-    return planet_alerts
 
 FILTER = None
 if len(sys.argv) > 1:
