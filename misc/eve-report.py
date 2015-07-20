@@ -4,11 +4,20 @@ import sys
 sys.path.append('/home/zigdon/lib/code/eve/evelink')
 import evelink
 import datetime
+import gflags
 import humanize
 import re
 import evelink.cache.sqlite
 
 from collections import OrderedDict, defaultdict
+
+FLAGS = gflags.FLAGS
+
+gflags.DEFINE_string('debug_char', None, 'Character substring to debug.')
+gflags.DEFINE_string('debug_planet', None, 'Planet substring to debug.')
+gflags.DEFINE_boolean('show_state', False, 'Display planet state.')
+gflags.DEFINE_boolean('debug', False, 'Display internal deubgging info.')
+gflags.DEFINE_boolean('transaction_details', False, 'Show full transaction log.')
 
 ITEMS = {
     # P0
@@ -149,6 +158,7 @@ def get_planetary_alerts():
             'needs': defaultdict(int),  # id: qty/hr
             'makes': defaultdict(int),  # id: qty/hr
             'has': defaultdict(int),    # id: qty
+            'counts': defaultdict(int), # id: number
         }
 
     def planet_summary(data):
@@ -157,7 +167,7 @@ def get_planetary_alerts():
             for resource in sorted(data[section],
                                    key=lambda x: (ITEMS[x]['tier'], name(x))):
                 print '    %-21s %d (%d m3) [%s]' % (
-                    name(resource),
+                    '%dx %s' % (data['counts'][resource], name(resource)),
                     data[section][resource],
                     ITEMS[resource]['size'] * data[section][resource],
                     ', '.join([name(x) for x in ITEMS[resource]['req']])
@@ -172,6 +182,12 @@ def get_planetary_alerts():
             for r in reqs:
                 make, bottlenecks = find_yield(state, r, bottlenecks)
                 ratio = (0.0 + make + state['has'][r])/state['needs'][r]
+                if FLAGS.debug:
+                    print ('%s: makes %d, has: %d, needs: %d, '
+                           'ratio: %f, bottlenecks: %s' % (
+                               ITEMS[r]['name'], make, state['has'][r],
+                               state['needs'][r], ratio, bottlenecks))
+
                 if ratio < 1.0:
                     bottlenecks.append(
                         '%s (%d%%)' % (ITEMS[r]['name'], 100.0*ratio))
@@ -180,11 +196,12 @@ def get_planetary_alerts():
         else:
             ratio = 1.0
 
-        print 'Checking bottlenecks for %s: makes %d, has %d (%d).' % (
-            name(item_id),
-            ratio * state['makes'][item_id],
-            state['has'][item_id],
-            ratio * 100)
+        if FLAGS.debug_planet:
+            print 'Checking bottlenecks for %s: makes %d, has %d (%d).' % (
+                name(item_id),
+                ratio * state['makes'][item_id],
+                state['has'][item_id],
+                ratio * 100)
         return ratio * state['makes'][item_id], bottlenecks
 
 
@@ -195,6 +212,10 @@ def get_planetary_alerts():
         planet_name = '%s: %s' % (
             planet_info['planet']['type_name'],
             planet_info['planet']['name'])
+
+        if FLAGS.debug_planet and FLAGS.debug_planet not in planet_name:
+            print 'Skipping %s.' % planet_name
+            continue
 
         planet_alerts[planet_name] = []
         routes, _, _ = char.planetary_routes(planet_id)
@@ -227,15 +248,22 @@ def get_planetary_alerts():
                         print 'UNKNOWN ITEM: %r' % {
                             'type_id': type_id,
                             'name': route['content']['name']}
+                        continue
+
 
                     if pin_type == 'Extractor':
                         planet_state[planet_id]['makes'][type_id] = qty
+                        planet_state[planet_id]['counts'][type_id] += 1
                     elif route['source_id'] == pin['id']:
                         qty *= -1
+
+                    if pin_type == 'Basic':
+                        qty *= 2
 
                     if pin_type in ('Basic', 'Advanced'):
                         if qty < 0:
                             planet_state[planet_id]['makes'][type_id] -= qty
+                            planet_state[planet_id]['counts'][type_id] += 1
                         else:
                             planet_state[planet_id]['needs'][type_id] += qty
 
@@ -258,7 +286,7 @@ def get_planetary_alerts():
                 planet_state[planet_id]['has'].update({
                     x['type']: x['quantity'] for x in pin['contents'].values()})
 
-        if True:
+        if FLAGS.show_state or FLAGS.debug_planet:
             print "\n\nState for %s:\n" % planet_name
             planet_summary(planet_state[planet_id])
 
@@ -283,24 +311,8 @@ def get_planetary_alerts():
 
     return planet_alerts
 
-"""
-            needs = planet_state[planet_id]['needs'].get(item_id, 0)
-            has = planet_state[planet_id]['has'].get(item_id, 0)
-            makes = planet_state[planet_id]['makes'].get(item_id, 0)
 
-            delta = (needs - makes)*24.0
-            #if has < delta:
-            if True:
-                alert = ('%-21s | Have: %7d | Make: %4d |'
-                         ' Need: %5d | Short: %4d' % (
-                             ITEMS[item_id]['name'], has, makes, needs, has-delta))
-                print alert
-                """
-
-
-FILTER = None
-if len(sys.argv) > 1:
-    FILTER = sys.argv[1]
+argv = FLAGS(sys.argv)
 
 for char_id, key_id, vcode, keywords in accounts:
     api = evelink.api.API(api_key=(key_id, vcode),
@@ -311,8 +323,8 @@ for char_id, key_id, vcode, keywords in accounts:
 
     char_name = sheet['name'].upper()
 
-    if FILTER is not None:
-        if FILTER.upper() not in char_name:
+    if FLAGS.debug_char is not None:
+        if FLAGS.debug_char.upper() not in char_name:
             print 'Skipping %s.' % char_name
             continue
 
@@ -338,7 +350,6 @@ for char_id, key_id, vcode, keywords in accounts:
     info, _, _ = char.wallet_info()
     print '\nBalance: %s' % humanize.intcomma(info['balance'])
 
-
     events = []
     if keywords:
         events.extend(search_calendar(keywords))
@@ -355,7 +366,7 @@ for char_id, key_id, vcode, keywords in accounts:
         for issue in issues:
             print '%-28s | %s' % (planet, issue)
 
-    if False:
+    if FLAGS.transaction_details:
         print 'Transaction details:\n'
         for entry in tx_details:
             print '{date} | {party:26} | {amount:13,} | {balance:16,} | {reason}'.format(**entry)
