@@ -166,9 +166,13 @@ def get_planetary_alerts():
             print '  %s:' % section.upper()
             for resource in sorted(data[section],
                                    key=lambda x: (ITEMS[x]['tier'], name(x))):
+                if section == 'has':
+                    name_and_count = '   %s' % name(resource)
+                else:
+                    name_and_count = '%dx %s' % (data['counts'][resource],
+                                                 name(resource))
                 print '    %-21s %d (%d m3) [%s]' % (
-                    '%dx %s' % (data['counts'][resource], name(resource)),
-                    data[section][resource],
+                    name_and_count, data[section][resource],
                     ITEMS[resource]['size'] * data[section][resource],
                     ', '.join([name(x) for x in ITEMS[resource]['req']])
                 )
@@ -252,7 +256,7 @@ def get_planetary_alerts():
 
 
                     if pin_type == 'Extractor':
-                        planet_state[planet_id]['makes'][type_id] = qty
+                        planet_state[planet_id]['makes'][type_id] += qty
                         planet_state[planet_id]['counts'][type_id] += 1
                     elif route['source_id'] == pin['id']:
                         qty *= -1
@@ -266,6 +270,7 @@ def get_planetary_alerts():
                             planet_state[planet_id]['counts'][type_id] += 1
                         else:
                             planet_state[planet_id]['needs'][type_id] += qty
+                            planet_state[planet_id]['counts'][type_id] += 1
 
                 # check that we have enough storage for the next day
                 if pin_type in ('Launchpad', 'Storage') and delta > 0:
