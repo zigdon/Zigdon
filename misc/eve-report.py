@@ -226,6 +226,31 @@ def add_market_tx(tx_cats):
     if export_fd:
         export_fd.close()
 
+def get_contracts(timeout=0):
+    """Load the recent character contracts."""
+    contracts, _, _ = char.contracts()
+
+    if timeout:
+        now = datetime.datetime.now()
+        contracts = [c for c in contracts if c['issued'] > now - timeout]
+
+    if contracts:
+        char_ids = set([c['issuer'] for c in contracts.itervalues()])
+        char_ids.update(set([c['assignee'] for c in contracts.itervalues()]))
+        names, _, _ = evelink.eve.EVE().character_names_from_ids(char_ids)
+
+        print '%20s | %20s | %20s | %12s | %s' % (
+            'When', 'From', 'To', 'Amount', 'Status'
+        )
+        print '-'*90
+        for contract in contracts.itervalues():
+            print '%20s | %20s | %20s | %14s | %s' % (
+                datetime.datetime.fromtimestamp(contract['issued']),
+                names[contract['issuer']],
+                names[contract['assignee']],
+                humanize.intcomma(int(contract['price'])),
+                contract['status'])
+
 def search_calendar(keyword_list):
     """Search for listed keywords in calendar entries."""
     cal_items = char.calendar_events()
@@ -469,6 +494,8 @@ for char_id, key_id, vcode, keywords in ACCOUNTS:
 
     info, _, _ = char.wallet_info()
     print '\nBalance: %s' % humanize.intcomma(info['balance'])
+
+    get_contracts()
 
     events = []
     if keywords:
