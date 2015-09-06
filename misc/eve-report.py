@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
 import sys
-sys.path.append('/home/zigdon/lib/code/eve/evelink')
-import evelink
 import datetime
 import gflags
 import humanize
+import os
 import re
+
+sys.path.append('/home/zigdon/lib/code/eve/evelink')
+import evelink
 import evelink.cache.sqlite
 
 from collections import OrderedDict, defaultdict
@@ -19,6 +21,7 @@ gflags.DEFINE_string('debug_planet', None, 'Planet substring to debug.')
 gflags.DEFINE_boolean('show_state', False, 'Display planet state.')
 gflags.DEFINE_boolean('debug', False, 'Display internal deubgging info.')
 gflags.DEFINE_boolean('transaction_details', False, 'Show full transaction log.')
+gflags.DEFINE_string('export_tx', None, 'Export transaction data to named file.')
 
 ITEMS = {
     # P0
@@ -147,20 +150,22 @@ for v in ITEMS.values():
 SPACE = {'Launchpad': 10000, 'Storage': 12000}
 
 with open('/home/zigdon/.everc') as f:
-    accounts = []
+    ACCOUNTS = []
     for line in f:
         char_id, key_id, vcode, keywords = line.split(',', 3)
         char_id = int(char_id)
         key_id = int(key_id)
         vcode = vcode.strip()
         keywords = keywords.lower().strip().split(',')
-        accounts.append((char_id, key_id, vcode, keywords))
+        ACCOUNTS.append((char_id, key_id, vcode, keywords))
     f.close()
 
 def get_journal_tx():
+    """Parse tx log, detecting bounties and taxes."""
     journal, _, _ = char.wallet_journal(limit=500)
 
     def blank_tx():
+        """Template for a new transaction."""
         return {'timestamp': 0,
                 'bounties': 0,
                 'duty': 0,
@@ -193,22 +198,40 @@ def get_journal_tx():
 
     return types, details
 
-def add_market_tx(categories):
+def add_market_tx(tx_cats):
+    """Read transactions, optionally export tsv."""
+
     transactions, _, _ = char.wallet_transactions()
+
+    export_fd = None
+    if FLAGS.export_tx:
+        export_fd = open(FLAGS.export_tx, 'a')
+
     for transaction in transactions:
         timestamp = datetime.datetime.fromtimestamp(transaction['timestamp'])
         day = timestamp.date()
 
+        if export_fd:
+            export_fd.write('\t'.join([timestamp.strftime('%x %X'),
+                                       str(transaction['quantity']),
+                                       transaction['type']['name'],
+                                       '%.2f' % transaction['price']]))
+            export_fd.write('\n')
+
         if transaction['action'] == 'buy':
-            categories[day]['purchases'] += transaction['price'] * transaction['quantity']
+            tx_cats[day]['purchases'] += transaction['price'] * transaction['quantity']
         elif transaction['action'] == 'sell':
-            categories[day]['sales'] += transaction['price'] * transaction['quantity']
+            tx_cats[day]['sales'] += transaction['price'] * transaction['quantity']
+
+    if export_fd:
+        export_fd.close()
 
 def search_calendar(keyword_list):
+    """Search for listed keywords in calendar entries."""
     cal_items = char.calendar_events()
     items = []
     for _, event in cal_items[0].iteritems():
-        for keyword in keywords:
+        for keyword in keyword_list:
             if keyword in event['title'].lower():
                 start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
 
@@ -217,16 +240,20 @@ def search_calendar(keyword_list):
     return items
 
 def get_planetary_alerts():
+    """Examine PI, find and report shortages and other warnings."""
     planets, _, _ = char.planetary_colonies()
     planet_alerts = OrderedDict()
 
     def name(type_id):
+        """Utility to translate id to name."""
         return ITEMS[type_id]['name']
 
     def get_pin_type(name):
+        """Utility to extract a building type from its name."""
         return name.split()[1]
 
     def blank_planet():
+        """Default entry for a new planet."""
         return {
             'needs': defaultdict(int),  # id: qty/hr
             'makes': defaultdict(int),  # id: qty/hr
@@ -235,6 +262,7 @@ def get_planetary_alerts():
         }
 
     def planet_summary(data):
+        """Given a record for a planet, print out a human readable summary."""
         for section in ('makes', 'has', 'needs'):
             print '  %s:' % section.upper()
             for resource in sorted(data[section],
@@ -251,23 +279,28 @@ def get_planetary_alerts():
                 )
 
     def find_yield(state, item_id, bottlenecks=None):
+        """Recursively examine a planet's production, finding overall yield."""
         if bottlenecks is None:
             bottlenecks = []
         reqs = [x for x in ITEMS[item_id]['req'] if x in state['makes']]
         if reqs:
             ratios = []
-            for r in reqs:
-                make, bottlenecks = find_yield(state, r, bottlenecks)
-                ratio = (0.0 + make + state['has'][r])/state['needs'][r]
+            for req in reqs:
+                make, bottlenecks = find_yield(state, req, bottlenecks)
+                if state['needs'][req]:
+                    ratio = (0.0 + make + state['has'][req])/state['needs'][req]
+                else:
+                    ratio = 1
+
                 if FLAGS.debug:
                     print ('%s: makes %d, has: %d, needs: %d, '
                            'ratio: %f, bottlenecks: %s' % (
-                               ITEMS[r]['name'], make, state['has'][r],
-                               state['needs'][r], ratio, bottlenecks))
+                               ITEMS[req]['name'], make, state['has'][req],
+                               state['needs'][req], ratio, bottlenecks))
 
                 if ratio < 1.0:
                     bottlenecks.append(
-                        '%s (%d%%)' % (ITEMS[r]['name'], 100.0*ratio))
+                        '%s (%d%%)' % (ITEMS[req]['name'], 100.0*ratio))
                 ratios.append(ratio)
             ratio = min(ratios + [1.0])
         else:
@@ -280,8 +313,6 @@ def get_planetary_alerts():
                 state['has'][item_id],
                 ratio * 100)
         return ratio * state['makes'][item_id], bottlenecks
-
-
 
     planet_state = defaultdict(blank_planet)
 
@@ -395,10 +426,15 @@ def get_planetary_alerts():
 
     return planet_alerts
 
+_ = FLAGS(sys.argv)
 
-argv = FLAGS(sys.argv)
+if FLAGS.export_tx:
+    try:
+        os.unlink(FLAGS.export_tx)
+    except OSError:
+        pass
 
-for char_id, key_id, vcode, keywords in accounts:
+for char_id, key_id, vcode, keywords in ACCOUNTS:
     api = evelink.api.API(api_key=(key_id, vcode),
                           cache=evelink.cache.sqlite.SqliteCache(
                               '/tmp/evecache-wallet.sq3'))
