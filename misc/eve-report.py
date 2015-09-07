@@ -4,8 +4,10 @@ import sys
 import datetime
 import gflags
 import humanize
+import operator
 import os
 import re
+import time
 
 sys.path.append('/home/zigdon/lib/code/eve/evelink')
 import evelink
@@ -229,21 +231,24 @@ def add_market_tx(tx_cats):
 def get_contracts(timeout=0):
     """Load the recent character contracts."""
     contracts, _, _ = char.contracts()
+    contracts = contracts.values()
 
     if timeout:
-        now = datetime.datetime.now()
-        contracts = [c for c in contracts if c['issued'] > now - timeout]
+        now = time.mktime(datetime.datetime.utcnow().timetuple())
+        contracts = [c for c in contracts
+                     if c['status'] != 'Completed'
+                     or c['issued'] > now - timeout]
 
     if contracts:
-        char_ids = set([c['issuer'] for c in contracts.itervalues()])
-        char_ids.update(set([c['assignee'] for c in contracts.itervalues()]))
+        char_ids = set([c['issuer'] for c in contracts])
+        char_ids.update(set([c['assignee'] for c in contracts]))
         names, _, _ = evelink.eve.EVE().character_names_from_ids(char_ids)
 
         print '%20s | %20s | %20s | %12s | %s' % (
             'When', 'From', 'To', 'Amount', 'Status'
         )
         print '-'*90
-        for contract in contracts.itervalues():
+        for contract in sorted(contracts, key=operator.itemgetter('issued')):
             print '%20s | %20s | %20s | %14s | %s' % (
                 datetime.datetime.fromtimestamp(contract['issued']),
                 names[contract['issuer']],
@@ -258,7 +263,8 @@ def search_calendar(keyword_list):
     for _, event in cal_items[0].iteritems():
         for keyword in keyword_list:
             if keyword in event['title'].lower():
-                start = humanize.naturalday(datetime.datetime.fromtimestamp(event['start_ts']))
+                start = humanize.naturalday(
+                    datetime.datetime.fromtimestamp(event['start_ts']))
 
                 items.append('%s - %s' % (start, event['title']))
 
@@ -495,7 +501,7 @@ for char_id, key_id, vcode, keywords in ACCOUNTS:
     info, _, _ = char.wallet_info()
     print '\nBalance: %s' % humanize.intcomma(info['balance'])
 
-    get_contracts()
+    get_contracts(2*24*60*60)
 
     events = []
     if keywords:
