@@ -237,20 +237,23 @@ def get_contracts(timeout=0):
         now = time.mktime(datetime.datetime.utcnow().timetuple())
         contracts = [c for c in contracts
                      if c['status'] != 'Completed'
-                     or c['issued'] > now - timeout]
+                     or c['expired'] > now - timeout]
 
     if contracts:
         char_ids = set([c['issuer'] for c in contracts])
         char_ids.update(set([c['assignee'] for c in contracts]))
         names, _, _ = evelink.eve.EVE().character_names_from_ids(char_ids)
 
-        print '%20s | %20s | %20s | %12s | %s' % (
+        print '%26s | %20s | %20s | %14s | %s' % (
             'When', 'From', 'To', 'Amount', 'Status'
         )
-        print '-'*90
-        for contract in sorted(contracts, key=operator.itemgetter('issued')):
-            print '%20s | %20s | %20s | %14s | %s' % (
+        print '-'*105
+        for contract in sorted(contracts,
+                               key=lambda x: (x['status'], x['issued'])):
+            print '%20s (%2sd) | %20s | %20s | %14s | %s' % (
                 datetime.datetime.fromtimestamp(contract['issued']),
+                (datetime.datetime.fromtimestamp(contract['expired']) -
+                 datetime.datetime.now()).days,
                 names[contract['issuer']],
                 names[contract['assignee']],
                 humanize.intcomma(int(contract['price'])),
