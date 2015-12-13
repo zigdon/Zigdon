@@ -24,6 +24,7 @@ gflags.DEFINE_boolean('show_state', False, 'Display planet state.')
 gflags.DEFINE_boolean('debug', False, 'Display internal deubgging info.')
 gflags.DEFINE_boolean('transaction_details', False, 'Show full transaction log.')
 gflags.DEFINE_string('export_tx', None, 'Export transaction data to named file.')
+gflags.DEFINE_string('export_pi', None, 'Export PI installations to named file.')
 
 ITEMS = {
     # P0
@@ -458,6 +459,17 @@ def get_planetary_alerts():
         if alert is not None:
             planet_alerts[planet_name].append(alert)
 
+    if FLAGS.export_pi:
+        export_fd = open(FLAGS.export_pi, 'a')
+        # user planet type count
+        for planet in planet_state:
+            for kind, count in planet_state[planet]['counts'].iteritems():
+                export_fd.write('\t'.join(
+                    (char_name, planets[planet]['planet']['name'],
+                     kind, str(count))))
+                export_fd.write('\n')
+        export_fd.close()
+
     return planet_alerts
 
 _ = FLAGS(sys.argv)
@@ -465,6 +477,12 @@ _ = FLAGS(sys.argv)
 if FLAGS.export_tx:
     try:
         os.unlink(FLAGS.export_tx)
+    except OSError:
+        pass
+
+if FLAGS.export_pi:
+    try:
+        os.unlink(FLAGS.export_pi)
     except OSError:
         pass
 
