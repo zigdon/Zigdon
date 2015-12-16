@@ -155,6 +155,8 @@ SPACE = {'Launchpad': 10000, 'Storage': 12000}
 with open('/home/zigdon/.everc') as f:
     ACCOUNTS = []
     for line in f:
+        if '#' in line:
+            continue
         char_id, key_id, vcode, keywords = line.split(',', 3)
         char_id = int(char_id)
         key_id = int(key_id)
