@@ -1,16 +1,33 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import gflags
 import os
 import sys
 from collections import defaultdict
 from gmusicapi import Mobileclient
 from pprint import pprint
 
-_SHORTWORD = 4
-_MATCHTHRESH = 20
+FLAGS = gflags.FLAGS
+
+gflags.DEFINE_boolean('debug_locker', False,
+                      'print out debugging output for locker search.')
+gflags.DEFINE_boolean('debug_aa', False,
+                      'print out debugging output for AA search.')
+gflags.DEFINE_integer('shortword', 4,
+                      'Ignore words shorter than this for local indexing.')
+gflags.DEFINE_integer('local_match', 20,
+                      'How good must a local match be before we accept it.')
+
+class Error(Exception):
+    pass
 
 def loadM3U(path):
+    """Given a path to an m3u file, parse the EXTINF lines in it
+
+    Returns a list of (length in seconds, text).
+    """
+
     def _parseExtInf(line):
         line = line[8:] # strip off the #EXITNF: prefix
         length, title = line.split(',', 1)
@@ -26,6 +43,15 @@ def loadM3U(path):
 
 
 def getClient(rc=None):
+    """Logs in with credentials found in ~/.gmusicrc.
+
+    Expected file format is:
+      id=username
+      pass=password
+
+    Error checking: none.
+    """
+
     if rc is None:
         rc = os.environ['HOME'] + '/.gmusicrc'
 
@@ -37,23 +63,29 @@ def getClient(rc=None):
 
     return mc
 
-def getGMusicPlaylist(mc):
+def getGMusicPlaylist(mc, name='M3U imported', delete=True):
+    """Returns an empty named playlist."""
+
     gplaylist = None
     gplaylists = mc.get_all_user_playlist_contents()
     for gp in gplaylists:
-        if gp['name'] == 'M3U imported':
-            print "Removing old playlist"
-            mc.delete_playlist(gp['id'])
-            break
+        if gp['name'] == name:
+            if delete:
+                print 'Removing old playlist'
+                mc.delete_playlist(gp['id'])
+                break
+            else:
+                raise Error('A playlist named "%s" already exists.' % name)
 
-    print "Creating new playlist 'M3U imported'."
-    return mc.create_playlist(
-        'M3U imported',
-        'Songs imported from M3U files.',
-        False)
+    print 'Creating new playlist "%s".' % name
+    return mc.create_playlist( name, 'Songs imported from M3U files.', False)
 
 def getGLibrary(mc):
-    # cache all existing songs in the library, index them
+    """Cache all existing songs in the library, and index them.
+
+    Returns dict of song metadata, dict of word: songid.
+    """
+
     library = {}
     index = defaultdict(lambda: defaultdict(int))
 
@@ -61,22 +93,23 @@ def getGLibrary(mc):
         songid = song['id']
         library[songid] = song
         for word in song['title'].split():
-            if len(word) < _SHORTWORD:
+            if len(word) < FLAGS.shortword:
                 continue
             index[word.lower()][songid] += 3
         for word in song['artist'].split():
-            if len(word) < _SHORTWORD:
+            if len(word) < FLAGS.shortword:
                 continue
             index[word.lower()][songid] += 1
 
     return library, index
 
 def findLockerBestMatch(song, library, index):
-    # try and find a match locally, failing that, in AA
+    """Tries to find best match from the locker."""
+
     matches = defaultdict(int)
     length, title = song
     for word in set(title.lower().split()):
-        if len(word) < _SHORTWORD:
+        if len(word) < FLAGS.shortword:
             continue
         if word in index:
             for songid, val in index[word].iteritems():
@@ -96,23 +129,23 @@ def findLockerBestMatch(song, library, index):
             len(title) -
             len(library[songid]['artist'] + library[songid]['title']))
 
-        if lenscore + titlescore > _MATCHTHRESH:
+        if lenscore + titlescore > FLAGS.local_match:
             continue
 
         matches2.append((lenscore+titlescore, songid))
 
     matches2 = sorted(matches2)
 
-    if False:
-        print "Matches for %s (%d):" % (title, length)
+    if FLAGS.debug_locker:
+        print 'Matches for %s (%d):' % (title, length)
 
         def _t(sid):
             return u'{artist} / {album} / {title}'.format(**library[sid])
 
         for score, sid in matches2:
-            print "   %s (%d) = %d" % (_t(sid), _l(sid), score)
+            print '   %s (%d) = %d' % (_t(sid), _l(sid), score)
 
-        print ""
+        print ''
 
     if matches2:
         return library[matches2[0][1]]
@@ -120,15 +153,21 @@ def findLockerBestMatch(song, library, index):
         return None
 
 def findAABestMatch(song, mc):
-    #print 'Searching for "%s"...\n  ' % song
+    """Searches for song in All Access."""
+
     res = mc.search_all_access(song)
-    #pprint(res['song_hits'][0])
-    #print '\n  '.join(' / '.join(x['track'][f] for f in ('artist', 'album', 'title')) for x in res['song_hits'])
+
+    if FLAGS.debug_aa:
+        print 'Searching for "%s"...\n  ' % song
+        print '\n  '.join(
+            ' / '.join(
+                x['track'][f] for f in ('artist', 'album', 'title'))
+            for x in res['song_hits'])
+
     if res['song_hits']:
         return res['song_hits'][0]['track']
     else:
         return None
-
 
 
 if len(sys.argv) != 2:
@@ -138,9 +177,9 @@ if len(sys.argv) != 2:
 playlist = loadM3U(sys.argv[1])
 client = getClient()
 
-print "Found %d songs:" % len(playlist)
+print 'Found %d songs:' % len(playlist)
 for song in playlist:
-    print "  %s" % song[1]
+    print '  %s' % song[1]
 
 # get a playlist
 gplaylist = getGMusicPlaylist(client)
@@ -173,4 +212,4 @@ print 'Missing %d songs:' % len(missing)
 print '\n'.join('  %s' % x for x in missing)
 
 added = client.add_songs_to_playlist(gplaylist, ['id' in x and x['id'] or x['nid'] for _, x in matches])
-print "%d songs added to playlist!" % len(added)
+print '%d songs added to playlist!' % len(added)
