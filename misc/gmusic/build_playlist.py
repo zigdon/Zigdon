@@ -71,7 +71,7 @@ def getGLibrary(mc):
 
     return library, index
 
-def findBestMatch(song, library, index):
+def findLockerBestMatch(song, library, index):
     # try and find a match locally, failing that, in AA
     matches = defaultdict(int)
     length, title = song
@@ -119,6 +119,18 @@ def findBestMatch(song, library, index):
     else:
         return None
 
+def findAABestMatch(song, mc):
+    #print 'Searching for "%s"...\n  ' % song
+    res = mc.search_all_access(song)
+    #pprint(res['song_hits'][0])
+    #print '\n  '.join(' / '.join(x['track'][f] for f in ('artist', 'album', 'title')) for x in res['song_hits'])
+    if res['song_hits']:
+        return res['song_hits'][0]['track']
+    else:
+        return None
+
+
+
 if len(sys.argv) != 2:
     print 'Usage: build_playlist.py playlist.m3u'
     sys.exit(1)
@@ -138,20 +150,27 @@ library, index = getGLibrary(client)
 matches = []
 missing = []
 for song in playlist:
-    match = findBestMatch(song, library, index)
+    match = findLockerBestMatch(song, library, index)
     if match is not None:
+        match['source'] = 'Library'
         matches.append((song[1], match))
     else:
-        missing.append(song[1])
+        match = findAABestMatch(song[1], client)
+        if match is not None:
+            match['source'] = 'All Access'
+            matches.append((song[1], match))
+        else:
+            missing.append(song[1])
 
 print 'Matched %d songs:' % len(matches)
 print '\n'.join(
-    '  %s -> %s / %s / %s' % (
-        title, gsong['title'], gsong['album'], gsong['title']) for
+    '  %s -> %s / %s / %s (%s)' % (
+        title, gsong['title'], gsong['album'],
+        gsong['title'], gsong['source']) for
     title, gsong in matches)
 
 print 'Missing %d songs:' % len(missing)
 print '\n'.join('  %s' % x for x in missing)
 
-added = client.add_songs_to_playlist(gplaylist, [x['id'] for _, x in matches])
+added = client.add_songs_to_playlist(gplaylist, ['id' in x and x['id'] or x['nid'] for _, x in matches])
 print "%d songs added to playlist!" % len(added)
