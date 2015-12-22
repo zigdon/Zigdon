@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-# coding: utf-8
+# Take an m3u file, create a playlist in gmusic for it.
+# Uses the unofficial gmusic api from https://github.com/simon-weber/gmusicapi
+# Unofficial, unsupported, kinda works.
 
 import gflags
 import os
