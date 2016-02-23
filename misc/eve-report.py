@@ -25,6 +25,7 @@ gflags.DEFINE_boolean('debug', False, 'Display internal deubgging info.')
 gflags.DEFINE_boolean('transaction_details', False, 'Show full transaction log.')
 gflags.DEFINE_string('export_tx', None, 'Export transaction data to named file.')
 gflags.DEFINE_string('export_pi', None, 'Export PI installations to named file.')
+gflags.DEFINE_string('export_contracts', None, 'Export contracts list to named file.')
 
 ITEMS = {
     # P0
@@ -236,6 +237,10 @@ def get_contracts(timeout=0):
     contracts, _, _ = char.contracts()
     contracts = contracts.values()
 
+    export_fd = None
+    if FLAGS.export_contracts:
+        export_fd = open(FLAGS.export_contracts, 'a')
+
     if timeout:
         now = time.mktime(datetime.datetime.utcnow().timetuple())
         contracts = [c for c in contracts
@@ -261,6 +266,18 @@ def get_contracts(timeout=0):
                 names[contract['assignee']],
                 humanize.intcomma(int(contract['price'])),
                 contract['status'])
+
+            if export_fd:
+                export_fd.write('\t'.join([
+                    str(datetime.datetime.fromtimestamp(contract['issued'])),
+                    str(datetime.datetime.fromtimestamp(contract['expired'])),
+                    names[contract['issuer']],
+                    names[contract['assignee']],
+                    str(contract['price']),
+                    contract['status'],
+                ]))
+                export_fd.write('\n')
+
 
 def search_calendar(keyword_list):
     """Search for listed keywords in calendar entries."""
@@ -476,17 +493,12 @@ def get_planetary_alerts():
 
 _ = FLAGS(sys.argv)
 
-if FLAGS.export_tx:
-    try:
-        os.unlink(FLAGS.export_tx)
-    except OSError:
-        pass
-
-if FLAGS.export_pi:
-    try:
-        os.unlink(FLAGS.export_pi)
-    except OSError:
-        pass
+for f in FLAGS.export_tx, FLAGS.export_pi, FLAGS.export_contracts:
+    if f:
+        try:
+            os.unlink(f)
+        except OSError:
+            pass
 
 for char_id, key_id, vcode, keywords in ACCOUNTS:
     api = evelink.api.API(api_key=(key_id, vcode),
