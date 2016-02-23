@@ -26,6 +26,7 @@ gflags.DEFINE_boolean('transaction_details', False, 'Show full transaction log.'
 gflags.DEFINE_string('export_tx', None, 'Export transaction data to named file.')
 gflags.DEFINE_string('export_pi', None, 'Export PI installations to named file.')
 gflags.DEFINE_string('export_contracts', None, 'Export contracts list to named file.')
+gflags.DEFINE_boolean('print_report', True, "When false, don't print anything to STDOUT.")
 
 ITEMS = {
     # P0
@@ -252,20 +253,23 @@ def get_contracts(timeout=0):
         char_ids.update(set([c['assignee'] for c in contracts]))
         names, _, _ = evelink.eve.EVE().character_names_from_ids(char_ids)
 
-        print '%26s | %20s | %20s | %14s | %s' % (
-            'When', 'From', 'To', 'Amount', 'Status'
-        )
-        print '-'*105
+        if FLAGS.print_report:
+            print '%26s | %20s | %20s | %14s | %s' % (
+                'When', 'From', 'To', 'Amount', 'Status'
+            )
+            print '-'*105
+
         for contract in sorted(contracts,
                                key=lambda x: (x['status'], x['issued'])):
-            print '%20s (%2sd) | %20s | %20s | %14s | %s' % (
-                datetime.datetime.fromtimestamp(contract['issued']),
-                (datetime.datetime.fromtimestamp(contract['expired']) -
-                 datetime.datetime.now()).days,
-                names[contract['issuer']],
-                names[contract['assignee']],
-                humanize.intcomma(int(contract['price'])),
-                contract['status'])
+            if FLAGS.print_report:
+                print '%20s (%2sd) | %20s | %20s | %14s | %s' % (
+                    datetime.datetime.fromtimestamp(contract['issued']),
+                    (datetime.datetime.fromtimestamp(contract['expired']) -
+                    datetime.datetime.now()).days,
+                    names[contract['issuer']],
+                    names[contract['assignee']],
+                    humanize.intcomma(int(contract['price'])),
+                    contract['status'])
 
             if export_fd:
                 export_fd.write('\t'.join([
@@ -317,6 +321,7 @@ def get_planetary_alerts():
 
     def planet_summary(data):
         """Given a record for a planet, print out a human readable summary."""
+
         for section in ('makes', 'has', 'needs'):
             print '  %s:' % section.upper()
             for resource in sorted(data[section],
@@ -511,30 +516,33 @@ for char_id, key_id, vcode, keywords in ACCOUNTS:
 
     if FLAGS.debug_char is not None:
         if FLAGS.debug_char.upper() not in char_name:
-            print 'Skipping %s.' % char_name
+            if FLAGS.print_report:
+                print 'Skipping %s.' % char_name
             continue
 
-    print '\n\n==== %s ====' % char_name
+    if FLAGS.print_report:
+        print '\n\n==== %s ====' % char_name
 
     categories, tx_details = get_journal_tx()
 
     add_market_tx(categories)
 
-    if categories:
-        print '\n%10s  %12s  %12s  %12s  %12s' % (
-            'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
-        for date in sorted(categories.keys()):
-            cats = categories[date]
-            print '%10s: %12s  %12s  %12s  %12s' % (
-                humanize.naturalday(date),
-                humanize.intcomma(int(cats['bounties'])),
-                humanize.intcomma(int(cats['duty'])),
-                humanize.intcomma(int(cats['sales'])),
-                humanize.intcomma(int(cats['purchases'])),
-            )
+    if FLAGS.print_report:
+        if categories:
+            print '\n%10s  %12s  %12s  %12s  %12s' % (
+                'Summary', 'Bounties', 'Duty', 'Sales', 'Purchases')
+            for date in sorted(categories.keys()):
+                cats = categories[date]
+                print '%10s: %12s  %12s  %12s  %12s' % (
+                    humanize.naturalday(date),
+                    humanize.intcomma(int(cats['bounties'])),
+                    humanize.intcomma(int(cats['duty'])),
+                    humanize.intcomma(int(cats['sales'])),
+                    humanize.intcomma(int(cats['purchases'])),
+                )
 
-    info, _, _ = char.wallet_info()
-    print '\nBalance: %s' % humanize.intcomma(info['balance'])
+        info, _, _ = char.wallet_info()
+        print '\nBalance: %s' % humanize.intcomma(info['balance'])
 
     get_contracts(2*24*60*60)
 
@@ -542,19 +550,19 @@ for char_id, key_id, vcode, keywords in ACCOUNTS:
     if keywords:
         events.extend(search_calendar(keywords))
 
-    if events:
+    if events and FLAGS.print_report:
         print '\nUpcoming events of note:'
         print '\n'.join(['  %s' % e for e in events])
         print '\n'
 
     alerts = get_planetary_alerts()
     for planet, issues in alerts.items():
-        if not issues:
+        if not FLAGS.print_report or not issues:
             continue
         for issue in issues:
             print '%-28s | %s' % (planet, issue)
 
-    if FLAGS.transaction_details:
+    if FLAGS.print_report and FLAGS.transaction_details:
         print 'Transaction details:\n'
         for entry in tx_details:
             print '{date} | {party:26} | {amount:13,} | {balance:16,} | {reason}'.format(**entry)
