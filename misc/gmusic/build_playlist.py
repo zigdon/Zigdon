@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# encoding=utf8
+
 # Take an m3u file, create a playlist in gmusic for it.
 # Uses the unofficial gmusic api from https://github.com/simon-weber/gmusicapi
 # Unofficial, unsupported, kinda works.
@@ -9,6 +11,9 @@ import sys
 from collections import defaultdict
 from gmusicapi import Mobileclient
 from pprint import pprint
+
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 FLAGS = gflags.FLAGS
 
@@ -205,7 +210,7 @@ for song in playlist:
 
 print 'Matched %d songs:' % len(matches)
 print '\n'.join(
-    '  %s -> %s / %s / %s (%s)' % (
+    u'  %s -> %s / %s / %s (%s)' % (
         title, gsong['title'], gsong['album'],
         gsong['title'], gsong['source']) for
     title, gsong in matches)
