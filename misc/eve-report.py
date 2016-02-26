@@ -26,6 +26,7 @@ gflags.DEFINE_boolean('transaction_details', False, 'Show full transaction log.'
 gflags.DEFINE_string('export_tx', None, 'Export transaction data to named file.')
 gflags.DEFINE_string('export_pi', None, 'Export PI installations to named file.')
 gflags.DEFINE_string('export_contracts', None, 'Export contracts list to named file.')
+gflags.DEFINE_string('export_jobs', None, 'Export industry job list to named file.')
 gflags.DEFINE_boolean('print_report', True, "When false, don't print anything to STDOUT.")
 
 ITEMS = {
@@ -155,16 +156,22 @@ for v in ITEMS.values():
 SPACE = {'Launchpad': 10000, 'Storage': 12000}
 
 with open('/home/zigdon/.everc') as f:
+    chars = []
     ACCOUNTS = []
+    CORPS = []
     for line in f:
         if '#' in line:
             continue
-        char_id, key_id, vcode, keywords = line.split(',', 3)
-        char_id = int(char_id)
-        key_id = int(key_id)
-        vcode = vcode.strip()
-        keywords = keywords.lower().strip().split(',')
-        ACCOUNTS.append((char_id, key_id, vcode, keywords))
+        try:
+            char_id, key_id, vcode, keywords = line.strip().split(',', 3)
+            char_id = int(char_id)
+            key_id = int(key_id)
+            keywords = keywords.lower().strip().split(',')
+            chars.append(char_id)
+            ACCOUNTS.append((char_id, key_id, vcode, keywords))
+        except ValueError:
+            key_id, vcode = line.strip().split(',', 2)
+            CORPS.append((key_id, vcode))
     f.close()
 
 def get_journal_tx():
@@ -498,7 +505,7 @@ def get_planetary_alerts():
 
 _ = FLAGS(sys.argv)
 
-for f in FLAGS.export_tx, FLAGS.export_pi, FLAGS.export_contracts:
+for f in FLAGS.export_tx, FLAGS.export_pi, FLAGS.export_contracts, FLAGS.export_jobs:
     if f:
         try:
             os.unlink(f)
@@ -566,3 +573,37 @@ for char_id, key_id, vcode, keywords in ACCOUNTS:
         print 'Transaction details:\n'
         for entry in tx_details:
             print '{date} | {party:26} | {amount:13,} | {balance:16,} | {reason}'.format(**entry)
+
+for key_id, vcode in CORPS:
+    api = evelink.api.API(api_key=(key_id, vcode),
+                          cache=evelink.cache.sqlite.SqliteCache(
+                              '/tmp/evecache-wallet.sq3'))
+    corp = evelink.corp.Corp(api=api)
+    jobs, _, _ = corp.industry_jobs()
+
+    report = []
+    for job in jobs.itervalues():
+        if job['installer']['id'] not in chars:
+            continue
+
+        item = job['product']['name']
+        done = job['completed']
+        end_ts = datetime.datetime.fromtimestamp(job['end_ts'])
+        runs = job['runs']
+        report.append((item, str(runs), str(end_ts), str(done)))
+
+
+    if report and FLAGS.print_report:
+        print "\n%-22s | %-4s | %-19s | %s" % ('Name', 'Runs', 'End time', 'Completed')
+        print '-' * 63
+        for job in report:
+            print "%22s | %4s | %19s | %s" % job
+
+    if report and FLAGS.export_jobs:
+        export_fd = open(FLAGS.export_jobs, 'a')
+        for job in report:
+            export_fd.write('\t'.join(job))
+            export_fd.write('\n')
+
+        export_fd.close()
+
