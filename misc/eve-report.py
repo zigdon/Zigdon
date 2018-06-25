@@ -515,7 +515,7 @@ for f in FLAGS.export_tx, FLAGS.export_pi, FLAGS.export_contracts, FLAGS.export_
 for char_id, key_id, vcode, keywords in ACCOUNTS:
     api = evelink.api.API(api_key=(key_id, vcode),
                           cache=evelink.cache.sqlite.SqliteCache(
-                              '/tmp/evecache-wallet.sq3'))
+                              ':memory:'))
     char = evelink.char.Char(char_id=char_id, api=api)
     sheet, _, _ = char.character_sheet()
 
@@ -577,7 +577,7 @@ for char_id, key_id, vcode, keywords in ACCOUNTS:
 for key_id, vcode in CORPS:
     api = evelink.api.API(api_key=(key_id, vcode),
                           cache=evelink.cache.sqlite.SqliteCache(
-                              '/tmp/evecache-wallet.sq3'))
+                              ':memory:'))
     corp = evelink.corp.Corp(api=api)
     jobs, _, _ = corp.industry_jobs()
 
