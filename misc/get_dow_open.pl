@@ -10,7 +10,7 @@ use File::Copy;
 use Date::Calendar::Profiles qw/ $Profiles /;
 use Date::Calendar;
 
-my $URL = "http://finance.google.com/finance?q=INDEXDJX:.DJI";
+my $URL = "http://geo.crox.net/djia";
 my $datadir = "/var/www/xkcd/map/data";
 my $datafile = "/var/www/xkcd/map/dow.js";
 my $announcer = "/home/zigdon/lib/xkcd/topicbot.pl";
@@ -20,7 +20,7 @@ my $quick = shift;
 
 open(CURRENT, $current) or die "Can't read $current: $!";
 my $current_djia = <CURRENT>;
-chomp $current_djia;
+chomp $current_djia if $current_djia;
 close CURRENT;
 
 my @lines;
@@ -36,42 +36,25 @@ unshift @lines, $header;
 my $open;
 my $starttime = time;
 my $err = 0;
+my @date = localtime;
+$URL .= sprintf("/%04d/%02d/%02d", 1900+$date[5], $date[4]+1, $date[3]);
 while (sleep 1) {
   die "Too many errors!" if $err > 60;
-  my $page = get $URL or warn "Can't get $URL: $!" and sleep 10 and next;;
-  my $tree = HTML::TreeBuilder->new_from_content($page) or &log("no tree!") and $err++ and next;
-  my $data = $tree->look_down(id => "market-data-div") or &log("no div!") and $err++ and next;
-  my ($td) = $data->look_down(class => "key", sub {$_[0]->as_text =~ /Open/i});
-  if ($td) {
-    $td = $td->right;
-  } else {
-    $tree->delete;
-    sleep 30;
-    next;
-  }
-
-  my @date = localtime;
-  if ($td) {
-    $open = $td->as_text;
-    $open =~ s/[^\d.]+//g;
-  } else {
-    $open = undef;
-  }
+  $open = get $URL or warn "Can't get $URL: $!" and sleep 10 and next;;
 
   $err = 0;
 
-  if (not $open or $open == $current_djia) {
+  if (not $open or $current_djia and $open == $current_djia) {
     if ($open and $open == $current_djia and $quick) {
       &log("DJIA still at $current_djia.  No change found.");
       exit;
     }
     &log("DJIA not available yet - current value is $current_djia, ",
-          "new values is ", ($td ? $td->as_text : "N/A"));
+          "new values is ", ($open ? $open : "N/A"));
 
     if (time - $starttime > 60*60) {
       &log("It's been an hour, assuming the market is closed.");
     } else {
-      $tree->delete;
       sleep 30;
       next;
     }
@@ -110,9 +93,10 @@ while (sleep 1) {
     $delta++;
   }
 
-  $tree->delete;
   last;
 }
+
+die "no opening value" if not $open;
 
 &log("DJIA for today is '$open'");
 
