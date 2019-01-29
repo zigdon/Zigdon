@@ -272,8 +272,12 @@ func (s *space) MakeMove(b *board) string {
     // If there are exactly 2, take htem
     if len(opt) + has == 2 {
       for _, d := range opt {
-        desc = append(desc, "b2: " + s.Mark(b, d))
-        desc = append(desc, "b2: " + s.Next(b, d).Mark(b, d))
+        if err := s.Mark("b2", b, d); err != nil {
+          break
+        }
+        if err := s.Next(b, d).Mark("b2", b, d); err != nil {
+          break
+        }
       }
     } else if len(opt) == 3 && has == 0 {
       // If there are 3, we know one of them is good
@@ -284,8 +288,9 @@ func (s *space) MakeMove(b *board) string {
       for _, d := range dirs {
         if !dirmap[d] {
           r := d.rev()
-          desc = append(desc, "b1: " + s.Mark(b, r))
-          desc = append(desc, "b1: " + s.Next(b, r).Mark(b, r))
+          if err := s.Mark("b1", b, r); err == nil {
+            s.Next(b, r).Mark("b1", b, r)
+          }
           break
         }
       }
@@ -294,15 +299,15 @@ func (s *space) MakeMove(b *board) string {
     con := s.CountConnections()
     if len(con) == 1 {
       // White nodes, you must pass straight through.
-      desc = append(desc, "w1: " + s.Mark(b, con[0].rev()))
+      s.Mark("w1", b, con[0].rev())
     } else if len(con) == 2 {
       // For white nodes, one side must be next to a corner.
       for _, d := range con {
         next := s.Next(b, d)
         opp := s.Next(b, d.rev())
         if next.c[d].e && opp.c[d.rev()].p {
+          fmt.Printf("w2: disallowing %s from %s", d.rev().name(), opp.name())
           opp.Disallow(b, d.rev())
-          desc = append(desc, fmt.Sprintf("w2: disallowed %s from %s", d.rev().name(), opp.name()))
         }
       }
     } else {
@@ -310,10 +315,7 @@ func (s *space) MakeMove(b *board) string {
         // If one direction is disallowed, we can make the two orthogonal ones
         if !s.c[d].p {
           for _, o := range d.orthogonal() {
-            res := s.Mark(b, o)
-            if res != "" {
-              desc = append(desc, "w+: " + res)
-            }
+            s.Mark("w+", b, o)
           }
           break
         }
@@ -321,7 +323,8 @@ func (s *space) MakeMove(b *board) string {
         if s.Next(b, d).node == white {
           // does the node in the other direction already have a line going further?
           if s.Next(b, d.rev()).c[d.rev()].e {
-            desc = append(desc, s.Disallow(b, d))
+            fmt.Printf("wx: disallowing %s from %s", d.name(), s.name())
+            s.Disallow(b, d)
           }
         }
       }
@@ -330,19 +333,16 @@ func (s *space) MakeMove(b *board) string {
 
   // If there's only one possible option, take it.
   if s.node != empty || len(s.CountConnections()) == 1 {
-    oo := s.OnlyOption(b)
-    if oo != "" {
-      desc = append(desc, "oo: " + oo)
-    }
+    s.OnlyOption(b)
   }
 
   return strings.Join(desc, "\n")
 }
 
-func (s *space) OnlyOption(b *board) string {
+func (s *space) OnlyOption(b *board) {
   cons := s.CountConnections()
   if len(cons) == 2 {
-    return ""
+    return
   }
 
   poss := []dir{}
@@ -353,14 +353,12 @@ func (s *space) OnlyOption(b *board) string {
   }
 
   if len(poss) + len(cons) == 2 {
-    desc := []string{}
     for _, d := range poss {
-      desc = append(desc, s.Mark(b, d))
+      if err := s.Mark("oo", b, d); err != nil {
+        break
+      }
     }
-    return strings.Join(desc, "\n")
   }
-
-  return ""
 }
 
 func (s *space) Disallow(b *board, d dir) string {
@@ -377,11 +375,12 @@ func (s *space) Disallow(b *board, d dir) string {
   return fmt.Sprintf("disallowed line from %s %s.", s.name(), d.name())
 }
 
-func (s *space) Mark(b *board, d dir) string {
+func (s *space) Mark(tag string, b *board, d dir) error {
   dest := s.Next(b, d)
   edge := s.c[d]
   if !edge.p {
-    return fmt.Sprintf("can't mark line from %s %s to %s.", s.name(), d.name(), dest.name())
+    fmt.Printf("%s: ERROR: can't mark line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
+    return fmt.Errorf("%s: can't mark line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
   }
   edge.e = true
   s.c[d] = edge
@@ -404,7 +403,8 @@ func (s *space) Mark(b *board, d dir) string {
     }
   }
 
-  return fmt.Sprintf("marked line from %s %s to %s.", s.name(), d.name(), dest.name())
+  fmt.Printf("%s: marked line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
+  return nil
 }
 
 type board struct {
@@ -655,7 +655,12 @@ func solve(b *board, depth int) {
           newBoard := b.Copy()
 
           mirror := newBoard.contents[guess.y][guess.x]
-          fmt.Printf("%d: Guessing: %s\n", depth, mirror.Mark(newBoard, d))
+          tag := fmt.Sprintf("%d(guess)", depth)
+          if err := mirror.Mark(tag, newBoard, d); err != nil {
+            guess.Disallow(b, d)
+            continue
+          }
+
           newBoard.PrintBoard(false)
           solve(newBoard, depth+1)
           fmt.Printf("%d: %s.\n", depth, guess.Disallow(b, d))
