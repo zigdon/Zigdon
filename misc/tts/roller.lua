@@ -1,5 +1,4 @@
 --Dice Clicker Strip by MrStump
---Save slots and probability calculation by zigdon
 --You may edit the below variables to change some of the tool's functionality
 
 --By default, this tool can roll 6 different dice types (d4-d20)
@@ -61,11 +60,27 @@ diceScale = {
 --How many dice can be spawned. 0 is infinite
 dieLimit = 0
 
-plus = 0
-target = 0
+--Save Slots
+--Adds a row of buttons below the dice, allowing saving and adding common rolls/modifiers.
+--Click on an empty slot to save the current set of dice and modifier.
+--Click on a saved set to add those dice and modifier to the existing set.
+--Right click to reset a save slot.
+--How many should be configured? 0 to disable
+saveSlots = 8
+
+--Probability Calculator
+--Allows setting a target, and will display the odds of rolling that number or higher.
+    --"default" = Odds update with every die added/removed
+    --"click"   = Odds only recalculated when the button is clicked
+    --"disable" = Remove widget
+probabilityCalculator = "default"
+probabilityCalculatorRolls = 1000
+
 
 --END OF VARIABLES TO EDIT WITHOUT SCRIPTING KNOWLEDGE
 
+plus = 0
+target = 0
 
 
 --Startup
@@ -107,23 +122,25 @@ function onload(saved_data)
     cleanupDice()
 
     savedDice = {}
-    for i = 1, 8, 1 do
-        local funcName = "save_" .. i
-        local func = function(obj, _, alt) saveDice(obj, i, alt) end
-        self.setVar(funcName, func)
-        self.createButton({
-            click_function = funcName,
-            function_owner = self,
-            label = "Save " .. i,
-            position = {
-                -3.25 + i*0.75, 0.05, 0.9
-            },
-            scale = {
-                0.75, 0.75, 0.75
-            },
-            width = 400,
-            height = 400,
-        })
+    if saveSlots > 0 then
+        for i = 1, saveSlots, 1 do
+            local funcName = "save_" .. i
+            local func = function(obj, _, alt) saveDice(obj, i, alt) end
+            self.setVar(funcName, func)
+            self.createButton({
+                click_function = funcName,
+                function_owner = self,
+                label = "Save " .. i,
+                position = {
+                    -3.25 + i*0.75, 0.05, 0.9
+                },
+                scale = {
+                    0.75, 0.75, 0.75
+                },
+                width = 400,
+                height = 400,
+            })
+        end
     end
 
     spawnRollButtons()
@@ -164,48 +181,53 @@ function onload(saved_data)
       height = 400
     })
 
-    self.createInput({
-      input_function = "setTarget",
-      function_owner = self,
-      label = "0",
-      font_size = 300,
-      position = {
-        4.5, 0.05, 0.9
-      },
-      scale = {
-        0.75, 0.75, 0.75
-      },
-      width = 400,
-      height = 400,
-      validation = 2 --Integer
-    })
-    
-    self.createButton({
-      click_function = "calcChance",
-      function_owner = self,
-      label = "%",
-      position = {
-        5.5, 0.05, 0.9
-      },
-      scale = {
-        0.75, 0.75, 0.75
-      },
-      font_size = 150,
-      width = 400,
-      height = 400
-    })
+    if probabilityCalculator != "disable" then
+        self.createInput({
+          input_function = "setTarget",
+          function_owner = self,
+          label = "0",
+          font_size = 300,
+          position = {
+            4.5, 0.05, 0.9
+          },
+          scale = {
+            0.75, 0.75, 0.75
+          },
+          width = 400,
+          height = 400,
+          validation = 2 --Integer
+        })
+
+        self.createButton({
+          click_function = "calcChance",
+          function_owner = self,
+          label = "%",
+          position = {
+            5.5, 0.05, 0.9
+          },
+          scale = {
+            0.75, 0.75, 0.75
+          },
+          font_size = 150,
+          width = 400,
+          height = 400
+        })
+    end
 end
 
 
 function setPlus(obj, color, input)
   plus = tonumber(input)
-  if tostring(plus) == input then
+  if probabilityCalculator == "default" and tostring(plus) == input then
     calcChance()
   end
 end
 
 function setTarget(obj, color, input)
   target = tonumber(input)
+  if probabilityCalculator == "default" then
+    calcChance()
+  end
 end
 
 function savePlus(p)
@@ -327,7 +349,9 @@ function click_roll(color, dieIndex, altClick)
         end
 
         --Update probability check
-        calcChance()
+        if probabilityCalculator == "default" then
+            calcChance()
+        end
     elseif rollInProgress == false then
         cleanupDice()
         click_roll(color, dieIndex)
@@ -634,51 +658,6 @@ function getSidesFromDie(die)
 end
 
 --Rolls simulator
-function copyList(l)
-  local copy = {}
-  for i, v in pairs(l) do
-    copy[i] = v
-  end
-
-  return copy
-end
-
-function dumpTable(t)
-  for k, v in pairs(t) do
-    print(k..": "..v)
-  end
-end
-
-function throws(dice)
-  local sums = {}
-  local max = 0
-  for idx, cnt in pairs(dice) do
-    max = max + ref_customDieSides_rev[idx]*cnt
-  end
-  for i = 0, max do
-    sums[i] = 0
-  end
-  local function throw(dice, s)
-    local done = false
-    for idx, count in ipairs(dice) do
-      if count > 0 then
-        local sides = ref_customDieSides_rev[idx]
-        local c = copyList(dice)
-        c[idx] = c[idx] - 1
-        for i = 1, sides do
-          throw(c, s+i)
-        end
-        done = true
-      end
-    end
-    if not done then
-      sums[s] = sums[s] + 1
-    end
-    return sums
-  end
-  return throw(dice, 0)
-end
-
 function calcChance()
   if target == 0 or #currentDice == 0 then
     setChance("%")
@@ -688,23 +667,54 @@ function calcChance()
   local win, total = 0, 0
   rolls = {0, 0, 0, 0, 0, 0}
   dtt = diceToText()
+  limit = 0
   for _, d in pairs(dtt) do
     idx = ref_customDieSides[tostring(d.types)]+1
     rolls[idx] = rolls[idx] + d.count
+    limit = limit + d.types * d.count
   end
-
-  res = throws(rolls)
-  for v, cnt in ipairs(res) do
-    total = total + cnt
-    if v >= target - plus then
-      win = win + cnt
-    end
-  end
-
-  setChance(string.format("%d%%", 100*win/total))
+  
+  setChance(estimate(dtt, target))
 end
 
+function estimate(dtt, target)
+    win = 0
+    for r = 1, probabilityCalculatorRolls, 1 do
+        local tot = 0
+        for _, d in pairs(dtt) do
+            for n = 1, d.count, 1 do
+                tot = tot + math.random(d.types)
+            end
+        end
+        if tot+plus >= target then
+            win = win + 1
+        end
+    end
+    
+    return string.format("%d%%", 100*win/probabilityCalculatorRolls)
+end
 
+function estimateMath(dtt, target)
+    local avg, p80, p90, p95 = 0, 0, 0, 0
+    for _, d in pairs(dtt) do
+        avg = avg + d.count * (1+d.types)*0.5
+        p80 = p80 + d.count * (1+d.types)*0.2
+        p90 = p90 + d.count * (1+d.types)*0.1
+        p95 = p95 + d.count * (1+d.types)*0.05
+    end
+    print(string.format("Avg: %d 80%%: %d 90%%: %d 95%%: %d", avg, p80, p90, p95))
+    if target < avg then
+        return ">50%"
+    elseif target < p80 then
+        return ">80%"
+    elseif target < p90 then
+        return ">90%"
+    elseif target < p95 then
+        return ">95%"
+    else
+        return "100%"
+    end
+end
 
 --Button creation
 
