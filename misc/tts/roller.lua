@@ -694,28 +694,6 @@ function estimate(dtt, target)
     return string.format("%d%%", 100*win/probabilityCalculatorRolls)
 end
 
-function estimateMath(dtt, target)
-    local avg, p80, p90, p95 = 0, 0, 0, 0
-    for _, d in pairs(dtt) do
-        avg = avg + d.count * (1+d.types)*0.5
-        p80 = p80 + d.count * (1+d.types)*0.2
-        p90 = p90 + d.count * (1+d.types)*0.1
-        p95 = p95 + d.count * (1+d.types)*0.05
-    end
-    print(string.format("Avg: %d 80%%: %d 90%%: %d 95%%: %d", avg, p80, p90, p95))
-    if target < avg then
-        return ">50%"
-    elseif target < p80 then
-        return ">80%"
-    elseif target < p90 then
-        return ">90%"
-    elseif target < p95 then
-        return ">95%"
-    else
-        return "100%"
-    end
-end
-
 --Button creation
 
 
