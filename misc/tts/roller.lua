@@ -61,6 +61,7 @@ diceScale = {
 dieLimit = 0
 
 plus = 0
+target = 0
 
 --END OF VARIABLES TO EDIT WITHOUT SCRIPTING KNOWLEDGE
 
@@ -161,11 +162,49 @@ function onload(saved_data)
       width = 400,
       height = 400
     })
+
+    self.createInput({
+      input_function = "setTarget",
+      function_owner = self,
+      label = "0",
+      font_size = 300,
+      position = {
+        4.5, 0.05, 0.9
+      },
+      scale = {
+        0.75, 0.75, 0.75
+      },
+      width = 400,
+      height = 400,
+      validation = 2 --Integer
+    })
+    
+    self.createButton({
+      click_function = "calcChance",
+      function_owner = self,
+      label = "%",
+      position = {
+        5.5, 0.05, 0.9
+      },
+      scale = {
+        0.75, 0.75, 0.75
+      },
+      font_size = 150,
+      width = 400,
+      height = 400
+    })
 end
 
 
 function setPlus(obj, color, input)
   plus = tonumber(input)
+  if tostring(plus) == input then
+    calcChance()
+  end
+end
+
+function setTarget(obj, color, input)
+  target = tonumber(input)
 end
 
 function savePlus(p)
@@ -173,6 +212,10 @@ function savePlus(p)
     self.editInput({index=0, label=string.format("%+d", p)})
 end
 
+function setChance(s)
+    btns = self.getButtons()
+    self.editButton({index=#btns-1, label=s})
+end
 
 
 --Save the current dice
@@ -185,12 +228,10 @@ function saveDice(btn, idx, reset)
         savedDice[idx] = nil
     elseif savedDice[idx] != nil then
         dice = savedDice[idx].dice
-        for i = 1, #dice, 1 do
-            for num, sides in string.gmatch(dice[i], "(%d+)d(%d+)") do
-                n = ref_customDieSides[sides]+1
-                for j = 1, num, 1 do
-                    self.call("button_" .. n)
-                end
+        for _, d in pairs(dice) do
+            n = ref_customDieSides[tostring(d.types)]+1
+            for j = 1, d.count, 1 do
+                self.call("button_" .. n)
             end
         end
         savePlus(plus + savedDice[idx].plus)
@@ -199,8 +240,11 @@ function saveDice(btn, idx, reset)
         savedDice[idx] = {}
         savedDice[idx].dice = dtt
         savedDice[idx].plus = plus
-        tip = table.concat(dtt, "+")
-        txt = table.concat(dtt, "\n")
+        tip, txt = "", ""
+        for _, d in pairs(dtt) do
+          tip = tip..string.format("%dd%d+", d.count, d.types)
+          txt = txt..string.format("%dd%d\n", d.count, d.types)
+        end
         if plus < 0 then
             p = plus
         elseif plus > 0 then
@@ -269,6 +313,9 @@ function click_roll(color, dieIndex)
 
         --Timer starting
         Timer.destroy("clickRoller_"..self.getGUID())
+
+        --Update probability check
+        calcChance()
     elseif rollInProgress == false then
         cleanupDice()
         click_roll(color, dieIndex)
@@ -462,23 +509,23 @@ end
 
 function diceToText()
     counts = {}
-	types = {}
+    types = {}
     for _, die in ipairs(currentDice) do
         sides = tonumber(string.match(tostring(die),"%d+"))
-		if counts[sides] == nil then
-			counts[sides] = 0
-			table.insert(types, sides)
-		end
+        if counts[sides] == nil then
+            counts[sides] = 0
+            table.insert(types, sides)
+        end
         counts[sides] = counts[sides] + 1
     end
 
-	table.sort(types)
+    table.sort(types)
     
     ret = {}
     for i = #types, 1, -1 do
-		t = types[i]
-	    c = counts[t]
-        table.insert(ret, c .. "d" .. t)
+        t = types[i]
+        c = counts[t]
+        table.insert(ret, {count=c, types=t})
     end
 
     return ret
@@ -567,6 +614,78 @@ function RGBToHex(rgb)
     else
         return ""
     end
+end
+
+
+--Rolls simulator
+function copyList(l)
+  local copy = {}
+  for i, v in pairs(l) do
+    copy[i] = v
+  end
+
+  return copy
+end
+
+function dumpTable(t)
+  for k, v in pairs(t) do
+    print(k..": "..v)
+  end
+end
+
+function throws(dice)
+  local sums = {}
+  local max = 0
+  for idx, cnt in pairs(dice) do
+    max = max + ref_customDieSides_rev[idx]*cnt
+  end
+  for i = 0, max do
+    sums[i] = 0
+  end
+  local function throw(dice, s)
+    local done = false
+    for idx, count in ipairs(dice) do
+      if count > 0 then
+        local sides = ref_customDieSides_rev[idx]
+        local c = copyList(dice)
+        c[idx] = c[idx] - 1
+        for i = 1, sides do
+          throw(c, s+i)
+        end
+        done = true
+      end
+    end
+    if not done then
+      sums[s] = sums[s] + 1
+    end
+    return sums
+  end
+  return throw(dice, 0)
+end
+
+function calcChance()
+  if target == 0 or #currentDice == 0 then
+    setChance("%")
+    return
+  end
+
+  local win, total = 0, 0
+  rolls = {0, 0, 0, 0, 0, 0}
+  dtt = diceToText()
+  for _, d in pairs(dtt) do
+    idx = ref_customDieSides[tostring(d.types)]+1
+    rolls[idx] = rolls[idx] + d.count
+  end
+
+  res = throws(rolls)
+  for v, cnt in ipairs(res) do
+    total = total + cnt
+    if v >= target - plus then
+      win = win + cnt
+    end
+  end
+
+  setChance(string.format("%d%%", 100*win/total))
 end
 
 
