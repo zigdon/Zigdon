@@ -1,4 +1,5 @@
 --Dice Clicker Strip by MrStump
+--Save slots and probability calculation by zigdon
 --You may edit the below variables to change some of the tool's functionality
 
 --By default, this tool can roll 6 different dice types (d4-d20)
@@ -263,7 +264,7 @@ end
 
 
 --Activated by click
-function click_roll(color, dieIndex)
+function click_roll(color, dieIndex, altClick)
     --Dice spam protection, can be disabled up at top of script
     local diceCount = 0
     for _ in pairs(currentDice) do
@@ -289,30 +290,41 @@ function click_roll(color, dieIndex)
             spawn_type = ref_defaultDieSides[dieIndex]
         end
 
-        --Spawns that die
-        local spawn_pos = getPositionInLine(#currentDice+1)
-        local spawnedDie = spawnObject({
-            type=spawn_type,
-            position = spawn_pos,
-            rotation = randomRotation(),
-            scale={spawn_scale,spawn_scale,spawn_scale}
-        })
-        if spawn_type == "Custom_Dice" then
-            spawnedDie.setCustomObject({
-                image = ref_diceCustom[dieIndex].url,
-                type = ref_customDieSides[tostring(spawn_sides)]
+        --Spawns (or remove) that die
+        if altClick then
+            for i, die in ipairs(currentDice) do
+                local sides = getSidesFromDie(die)
+                if sides == spawn_sides then
+                    table.remove(currentDice, i)
+                    destroyObject(die)
+                    break
+                end
+            end
+        else
+            local spawn_pos = getPositionInLine(#currentDice+1)
+            local spawnedDie = spawnObject({
+                type=spawn_type,
+                position = spawn_pos,
+                rotation = randomRotation(),
+                scale={spawn_scale,spawn_scale,spawn_scale}
             })
-        end
+            if spawn_type == "Custom_Dice" then
+                spawnedDie.setCustomObject({
+                    image = ref_diceCustom[dieIndex].url,
+                    type = ref_customDieSides[tostring(spawn_sides)]
+                })
+            end
 
-        --After die is spawned, actions to take on it
-        table.insert(currentDice, spawnedDie)
-        spawnedDie.setLock(true)
-        if ref_diceCustom[dieIndex].name ~= "" then
-            spawnedDie.setName(ref_diceCustom[dieIndex].name)
-        end
+            --After die is spawned, actions to take on it
+            table.insert(currentDice, spawnedDie)
+            spawnedDie.setLock(true)
+            if ref_diceCustom[dieIndex].name ~= "" then
+                spawnedDie.setName(ref_diceCustom[dieIndex].name)
+            end
 
-        --Timer starting
-        Timer.destroy("clickRoller_"..self.getGUID())
+            --Timer starting
+            Timer.destroy("clickRoller_"..self.getGUID())
+        end
 
         --Update probability check
         calcChance()
@@ -408,13 +420,7 @@ function displayResults(color)
                 textColor = die.getColorTint()
             end
             --Get die type
-            local dSides = ""
-            local dieCustomInfo = die.getCustomObject()
-            if next(dieCustomInfo) then
-                dSides = ref_customDieSides_rev[dieCustomInfo.type+1]
-            else
-                dSides = tonumber(string.match(tostring(die),"%d+"))
-            end
+            local dSides = getSidesFromDie(die)
             --Add to table
             table.insert(resultTable, {value=value, color=textColor, sides=dSides})
         end
@@ -616,6 +622,16 @@ function RGBToHex(rgb)
     end
 end
 
+function getSidesFromDie(die)
+    local dSides
+    local dieCustomInfo = die.getCustomObject()
+    if next(dieCustomInfo) then
+        dSides = ref_customDieSides_rev[dieCustomInfo.type+1]
+    else
+        dSides = tonumber(string.match(tostring(die),"%d+"))
+    end
+    return dSides
+end
 
 --Rolls simulator
 function copyList(l)
@@ -697,7 +713,7 @@ end
 function spawnRollButtons()
     for i, entry in ipairs(ref_diceCustom) do
         local funcName = "button_"..i
-        local func = function(_, c) click_roll(c, i) end
+        local func = function(_, c, alt) click_roll(c, i, alt) end
         self.setVar(funcName, func)
         self.createButton({
             click_function=funcName, function_owner=self, color={1,1,1,0},
