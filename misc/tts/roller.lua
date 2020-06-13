@@ -203,7 +203,7 @@ function onload(saved_data)
           function_owner = self,
           label = "%",
           position = {
-            5.5, 0.05, 0.9
+            5.3, 0.05, 0.9
           },
           scale = {
             0.75, 0.75, 0.75
@@ -217,14 +217,14 @@ end
 
 
 function setPlus(obj, color, input)
-  plus = tonumber(input)
+  plus = tonumber(input) or 0
   if probabilityCalculator == "default" and tostring(plus) == input then
     calcChance()
   end
 end
 
 function setTarget(obj, color, input)
-  target = tonumber(input)
+  target = tonumber(input) or 0
   if probabilityCalculator == "default" then
     calcChance()
   end
@@ -232,12 +232,17 @@ end
 
 function savePlus(p)
     plus = p
-    self.editInput({index=0, label=string.format("%+d", p)})
+    self.editInput({index=0, label=string.format("%d", p)})
+end
+
+function saveTarget(t)
+    target = t
+    self.editInput({index=1, label=string.format("%d", t)})
 end
 
 function setChance(s)
     btns = self.getButtons()
-    self.editButton({index=#btns-1, label=s})
+    self.editButton({index=#btns-1, label=s, tooltip=s})
 end
 
 
@@ -353,7 +358,7 @@ function click_roll(color, dieIndex, altClick)
             calcChance()
         end
     elseif rollInProgress == false then
-        cleanupDice()
+        clearDice()
         click_roll(color, dieIndex)
     else
         Player[color].broadcast("Roll in progress.", {0.8, 0.2, 0.2})
@@ -580,6 +585,8 @@ end
 function clearDice()
     cleanupDice()
     savePlus(0)
+    saveTarget(0)
+    calcChance()
 end
 
 
