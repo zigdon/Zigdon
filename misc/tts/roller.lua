@@ -109,12 +109,13 @@ function onSave()
     end
     dumpTable(currentDiceGUIDs)
 
-    local saved_data = JSON.encode({["guids"] = currentDiceGUIDs})
+    local saved_data = JSON.encode({["guids"] = currentDiceGUIDs, ["saves"] = savedDice})
     return saved_data
 end
 
 function onLoad(saved_data)
     --Loads the save of any active dice and deletes them
+    savedDice = {}
     if saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
         dumpTable(loaded_data)
@@ -124,23 +125,29 @@ function onLoad(saved_data)
                 destroyObject(obj)
             end
         end
-        currentDice = {}
-    else
-        currentDice = {}
+        if loaded_data.saves ~= nil then
+            savedDice = loaded_data.saves
+        end
     end
+    currentDice = {}
 
     cleanupDice()
 
-    savedDice = {}
     if saveSlots > 0 then
         for i = 1, saveSlots, 1 do
             local funcName = "save_" .. i
             local func = function(obj, _, alt) saveDice(obj, i, alt) end
+            local label, tooltip = "Save " .. i, ""
+            if savedDice ~= nil and savedDice[i] ~= nil then
+                dumpTable(savedDice[i], "  ")
+                tooltip, label = describeSavedDice(savedDice[i])
+            end
             self.setVar(funcName, func)
             self.createButton({
                 click_function = funcName,
                 function_owner = self,
-                label = "Save " .. i,
+                label = label,
+                tooltip = tooltip,
                 position = {
                     -3.25 + i*0.75, 0.05, 0.9
                 },
@@ -259,6 +266,24 @@ end
 --Save the current dice
 
 
+function describeSavedDice(save)
+    tip, txt = "", ""
+    for _, d in pairs(save.dice) do
+      tip = tip..string.format("%dd%d+", d.count, d.types)
+      txt = txt..string.format("%dd%d\n", d.count, d.types)
+    end
+    if save.plus != nil then
+        tip = tip .. save.plus
+        if save.plus > 0 then
+            txt = txt .. "+" .. save.plus
+        elseif save.plus < 0 then
+            txt = txt .. save.plus
+        end
+    end
+
+    return tip, txt
+end
+
 
 function saveDice(btn, idx, reset)
     if reset then
@@ -278,19 +303,7 @@ function saveDice(btn, idx, reset)
         savedDice[idx] = {}
         savedDice[idx].dice = dtt
         savedDice[idx].plus = plus
-        tip, txt = "", ""
-        for _, d in pairs(dtt) do
-          tip = tip..string.format("%dd%d+", d.count, d.types)
-          txt = txt..string.format("%dd%d\n", d.count, d.types)
-        end
-        if plus != nil then
-            tip = tip .. plus
-            if plus > 0 then
-                txt = txt .. "+" .. plus
-            elseif plus < 0 then
-                txt = txt .. plus
-            end
-        end
+        tip, txt = describeSavedDice(savedDice[idx])
         self.editButton({index=idx-1, label=txt, tooltip=tip})
     end
 end
