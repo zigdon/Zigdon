@@ -85,30 +85,40 @@ target = 0
 
 --Startup
 
-
+function dumpTable(t, prefix)
+    if prefix == nil then
+        prefix = ""
+    end
+    for k, v in pairs(t) do
+        if type(v) == "table" then
+            print(prefix..k..": <table>")
+            dumpTable(v, prefix.."  ")
+        else
+            print(prefix .. k .. ":" .. v)
+        end
+    end
+end
 
 --Save to track currently active dice for disposal on load
 function onSave()
-    if #currentDice > 0 then
-        local currentDiceGUIDs = {}
-        for _, obj in ipairs(currentDice) do
-            if obj ~= nil then
-                table.insert(currentDiceGUIDs, obj.getGUID())
-            end
+    local currentDiceGUIDs = {}
+    for _, obj in ipairs(currentDice) do
+        if obj ~= nil then
+            table.insert(currentDiceGUIDs, obj.getGUID())
         end
-        saved_data = JSON.encode(currentDiceGUIDs)
-    else
-        saved_data = ""
     end
-    saved_data = ""
+    dumpTable(currentDiceGUIDs)
+
+    local saved_data = JSON.encode({["guids"] = currentDiceGUIDs})
     return saved_data
 end
 
-function onload(saved_data)
+function onLoad(saved_data)
     --Loads the save of any active dice and deletes them
     if saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
-        for _, guid in ipairs(loaded_data) do
+        dumpTable(loaded_data)
+        for _, guid in ipairs(loaded_data.guids) do
             local obj = getObjectFromGUID(guid)
             if obj ~= nil then
                 destroyObject(obj)
@@ -160,7 +170,7 @@ function onload(saved_data)
     self.createInput({
       input_function = "setPlus",
       function_owner = self,
-      label = "+0",
+      label = "0",
       font_size = 300,
       position = {
         3.5, 0.05, 0
