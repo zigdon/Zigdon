@@ -169,7 +169,7 @@ function onload(saved_data)
       height = 400,
       validation = 2 --Integer
     })
-    
+
     self.createButton({
       click_function = "clearDice",
       function_owner = self,
@@ -273,14 +273,9 @@ function saveDice(btn, idx, reset)
           tip = tip..string.format("%dd%d+", d.count, d.types)
           txt = txt..string.format("%dd%d\n", d.count, d.types)
         end
-        if plus < 0 then
-            p = plus
-        elseif plus > 0 then
-            p = "+" .. plus
-        end
-        if p != nil then
-            tip = tip .. p
-            txt = txt .. "\n" .. p
+        if plus != nil then
+            tip = tip .. plus
+            txt = txt .. plus
         end
         self.editButton({index=idx-1, label=txt, tooltip=tip})
     end
@@ -555,7 +550,7 @@ function diceToText()
     end
 
     table.sort(types)
-    
+
     ret = {}
     for i = #types, 1, -1 do
         t = types[i]
@@ -680,7 +675,7 @@ function calcChance()
     rolls[idx] = rolls[idx] + d.count
     limit = limit + d.types * d.count
   end
-  
+
   setChance(estimate(dtt, target))
 end
 
@@ -697,7 +692,7 @@ function estimate(dtt, target)
             win = win + 1
         end
     end
-    
+
     return string.format("%d%%", 100*win/probabilityCalculatorRolls)
 end
 
