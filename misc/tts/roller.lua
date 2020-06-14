@@ -107,7 +107,6 @@ function onSave()
             table.insert(currentDiceGUIDs, obj.getGUID())
         end
     end
-    dumpTable(currentDiceGUIDs)
 
     local saved_data = JSON.encode({["guids"] = currentDiceGUIDs, ["saves"] = savedDice})
     return saved_data
@@ -118,7 +117,6 @@ function onLoad(saved_data)
     savedDice = {}
     if saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
-        dumpTable(loaded_data)
         for _, guid in ipairs(loaded_data.guids) do
             local obj = getObjectFromGUID(guid)
             if obj ~= nil then
@@ -139,7 +137,6 @@ function onLoad(saved_data)
             local func = function(obj, _, alt) saveDice(obj, i, alt) end
             local label, tooltip = "Save " .. i, ""
             if savedDice ~= nil and savedDice[i] ~= nil then
-                dumpTable(savedDice[i], "  ")
                 tooltip, label = describeSavedDice(savedDice[i])
             end
             self.setVar(funcName, func)
