@@ -275,7 +275,11 @@ function saveDice(btn, idx, reset)
         end
         if plus != nil then
             tip = tip .. plus
-            txt = txt .. plus
+            if plus > 0 then
+                txt = txt .. "+" .. plus
+            elseif plus < 0 then
+                txt = txt .. plus
+            end
         end
         self.editButton({index=idx-1, label=txt, tooltip=tip})
     end
