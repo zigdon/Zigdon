@@ -366,6 +366,8 @@ function click_roll(color, dieIndex, altClick)
             spawnedDie.setLock(true)
             if ref_diceCustom[dieIndex].name ~= "" then
                 spawnedDie.setName(ref_diceCustom[dieIndex].name)
+            else
+                spawnedDie.setName("d"..ref_diceCustom[dieIndex].sides)
             end
 
             --Timer starting
