@@ -733,7 +733,8 @@ function spawnRollButtons()
         self.setVar(funcName, func)
         self.createButton({
             click_function=funcName, function_owner=self, color={1,1,1,0},
-            position={-2.5+(i-1)*1,0.05,0}, height=330, width=330
+            tooltip="d"..entry.sides, position={-2.5+(i-1)*1,0.05,0},
+            height=330, width=330
         })
     end
 end
