@@ -234,14 +234,13 @@ func (s *space) Right(b *board) *space {
   return b.contents[s.y][s.x+1]
 }
 
-func (s *space) MakeMove(b *board) string {
-  desc := []string{}
-
+func (s *space) MakeMove(b *board) int {
+  moves := 0
   if s.node == black {
     opt := []dir{}
     has := len(s.CountConnections())
     if has == 2 {
-      return ""
+      return 0
     }
     // Check how many options exist for black nodes.
     //// fmt.Printf("looking at %s\n", s.name())
@@ -275,9 +274,11 @@ func (s *space) MakeMove(b *board) string {
         if err := s.Mark("b2", b, d); err != nil {
           break
         }
+        moves++
         if err := s.Next(b, d).Mark("b2", b, d); err != nil {
           break
         }
+        moves++
       }
     } else if len(opt) == 3 && has == 0 {
       // If there are 3, we know one of them is good
@@ -291,6 +292,7 @@ func (s *space) MakeMove(b *board) string {
           if err := s.Mark("b1", b, r); err == nil {
             s.Next(b, r).Mark("b1", b, r)
           }
+          moves++
           break
         }
       }
@@ -300,13 +302,14 @@ func (s *space) MakeMove(b *board) string {
     if len(con) == 1 {
       // White nodes, you must pass straight through.
       s.Mark("w1", b, con[0].rev())
+      moves++
     } else if len(con) == 2 {
       // For white nodes, one side must be next to a corner.
       for _, d := range con {
         next := s.Next(b, d)
         opp := s.Next(b, d.rev())
         if next.c[d].e && opp.c[d.rev()].p {
-          fmt.Printf("w2: disallowing %s from %s", d.rev().name(), opp.name())
+          fmt.Printf("w2: disallowing %s from %s\n", d.rev().name(), opp.name())
           opp.Disallow(b, d.rev())
         }
       }
@@ -316,6 +319,7 @@ func (s *space) MakeMove(b *board) string {
         if !s.c[d].p {
           for _, o := range d.orthogonal() {
             s.Mark("w+", b, o)
+            moves++
           }
           break
         }
@@ -333,16 +337,17 @@ func (s *space) MakeMove(b *board) string {
 
   // If there's only one possible option, take it.
   if s.node != empty || len(s.CountConnections()) == 1 {
-    s.OnlyOption(b)
+    moves += s.OnlyOption(b)
   }
 
-  return strings.Join(desc, "\n")
+  return moves
 }
 
-func (s *space) OnlyOption(b *board) {
+func (s *space) OnlyOption(b *board) int {
+  moves := 0
   cons := s.CountConnections()
   if len(cons) == 2 {
-    return
+    return 0
   }
 
   poss := []dir{}
@@ -357,8 +362,11 @@ func (s *space) OnlyOption(b *board) {
       if err := s.Mark("oo", b, d); err != nil {
         break
       }
+      moves++
     }
   }
+
+  return moves
 }
 
 func (s *space) Disallow(b *board, d dir) string {
@@ -377,17 +385,38 @@ func (s *space) Disallow(b *board, d dir) string {
 
 func (s *space) Mark(tag string, b *board, d dir) error {
   dest := s.Next(b, d)
+  rev := d.rev()
   edge := s.c[d]
   if !edge.p {
-    fmt.Printf("%s: ERROR: can't mark line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
-    return fmt.Errorf("%s: can't mark line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
+    err := fmt.Sprintf("%s: ERROR: can't mark line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
+    fmt.Println(err)
+    return fmt.Errorf(err)
   }
+
+  // Don't mark into a dead end
+  opt := []dir{}
+
+  for _, nd := range dirs {
+    if nd == rev {
+      continue
+    }
+    if dest.c[nd].e || dest.c[nd].p {
+      opt = append(opt, nd)
+    }
+  }
+  if len(opt) == 0 {
+    err := fmt.Sprintf("%s: ERROR: will mark into a dead end from %s %s to %s", tag, s.name(), d.name(), dest.name())
+    fmt.Println(err)
+    s.Disallow(b, d)
+    return fmt.Errorf(err)
+  }
+
   edge.e = true
   s.c[d] = edge
 
-  edge = dest.c[d.rev()]
+  edge = dest.c[rev]
   edge.e = true
-  dest.c[d.rev()] = edge
+  dest.c[rev] = edge
 
   for _, node := range []*space{s, dest} {
     cons := node.CountConnections()
@@ -403,7 +432,7 @@ func (s *space) Mark(tag string, b *board, d dir) error {
     }
   }
 
-  fmt.Printf("%s: marked line from %s %s to %s.", tag, s.name(), d.name(), dest.name())
+  fmt.Printf("%s: marked line from %s %s to %s.\n", tag, s.name(), d.name(), dest.name())
   return nil
 }
 
@@ -530,8 +559,8 @@ func (b *board) PrintBoard(simple bool) {
 func (b *board) MakeMove() string {
   for _, line := range b.contents {
     for _, space := range line {
-      if desc := space.MakeMove(b); desc != "" {
-        return desc
+      if moves := space.MakeMove(b); moves > 0 {
+        return fmt.Sprintf("Made %d moves.", moves)
       }
     }
   }
