@@ -1,0 +1,50 @@
+<html>
+  <head>
+    <script type='text/javascript' src='https://www.gstatic.com/charts/loader.js'></script>
+    <script type='text/javascript'>
+      google.charts.load('current', {'packages': ['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        {{range .Cols -}}
+        data.addColumn('number', '{{.}}');
+        {{end}}
+        data.addRows([
+          {{range .Rows -}}
+          [ new Date({{.Year -}}, {{.Month -}}, {{.Day -}}), {{range .Data}}{{. -}}, {{- end}}],
+          {{end}}
+        ]);
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+        chart.draw(data, {
+          displayAnnotations: true,
+          explorer: {
+            actions: [
+              'dragToZoom', 'rightClickToReset',
+            ],
+            maxZoomIn: 0.05,
+            maxZoomOut: 1,
+          },
+          isStacked: false,
+          hAxis: {
+            title: "Date",
+          },
+          vAxis: {
+            title: "Minutes",
+          },
+          title: 'Working out, minutes per month',
+          legend: {
+            position: 'top',
+            maxLines: 3,
+          },
+        });
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id='chart_div' style='width: 100%; height: 100%;'></div>
+  </body>
+</html>
