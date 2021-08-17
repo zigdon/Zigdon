@@ -27,7 +27,7 @@
             maxZoomIn: 0.05,
             maxZoomOut: 1,
           },
-          isStacked: false,
+          isStacked: document.getElementById('stacked').checked,
           hAxis: {
             title: "Date",
           },
@@ -45,6 +45,9 @@
   </head>
 
   <body>
-    <div id='chart_div' style='width: 100%; height: 100%;'></div>
+    <div id='chart_div' style='width: 100%; height: 95%;'></div>
+    <form>
+      <input type=checkbox label="stacked" id="stacked" onClick="drawChart()">Stack data</input>
+    </form>
   </body>
 </html>

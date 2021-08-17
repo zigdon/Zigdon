@@ -4,6 +4,7 @@ import (
     "encoding/csv"
     "os"
     "io"
+    "flag"
     "fmt"
     "log"
     "io/ioutil"
@@ -11,6 +12,8 @@ import (
     "strings"
     "strconv"
 )
+
+var csvType = flag.String("type", "", "What kind of CSV. Valid options: gfit, peloton")
 
 type gfitLine struct {
   Year, Month, Day uint
@@ -30,6 +33,66 @@ type data struct {
 
 const (
   msToMin = 60*1000
+  secToMin = 60
+)
+
+var (
+  cols = map[string][]col{
+    "gfit": []col{
+      {
+        name: "Biking",
+        idx: 28,
+        factor: msToMin,
+      },
+      {
+        name: "Spinning",
+        idx: 33,
+        factor: msToMin,
+      },
+      {
+        name: "Stationary",
+        idx: 34,
+        factor: msToMin,
+      },
+      {
+        name: "Climbing",
+        idx: 40,
+        factor: msToMin,
+      },
+      {
+        name: "Strength",
+        idx: 42,
+        factor: msToMin,
+      },
+    },
+    "peloton": []col{
+      {
+        name: "Spinning",
+        idx: 4,
+        factor: secToMin,
+      },
+      {
+        name: "Stretching",
+        idx: 5,
+        factor: secToMin,
+      },
+      {
+        name: "Strength",
+        idx: 6,
+        factor: secToMin,
+      },
+      {
+        name: "Meditation",
+        idx: 7,
+        factor: secToMin,
+      },
+      {
+        name: "Yoga",
+        idx: 8,
+        factor: secToMin,
+      },
+    },
+  }
 )
 
 func mustAtoi(s string) uint {
@@ -68,7 +131,7 @@ func parseLines(cols []col, f io.Reader) ([]gfitLine, error) {
     year := mustAtoi(date[0])
     month := mustAtoi(date[1]) - 1
     // day := mustAtoi(date[2])
-    if mustAtoi(l[28]) > 40000000 {
+    if *csvType == "gfit" && mustAtoi(l[28]) > 40000000 {
       m := mustAtoi(l[28]) / 60000
       log.Printf("discarding value for cycling in %s: %d", date, m)
       l[28] = "0"
@@ -99,13 +162,14 @@ func parseLines(cols []col, f io.Reader) ([]gfitLine, error) {
 }
 
 func main() {
-  if len(os.Args) != 4 {
-    fmt.Println("Usage: input.csv template.html out.html")
-    os.Exit(1)
+  flag.Parse()
+  if _, ok := cols[*csvType]; !ok {
+    log.Fatalf("Invalid --type %q", *csvType)
   }
-  fname := os.Args[1]
-  tmplName := os.Args[2]
-  htmlName := os.Args[3]
+
+  fname := flag.Arg(0)
+  tmplName := flag.Arg(1)
+  htmlName := flag.Arg(2)
   f, err := os.Open(fname)
   if err != nil {
     log.Fatalf("Can't open %q: %v", fname, err)
@@ -125,39 +189,12 @@ func main() {
     log.Fatalf("Error parsing template %q: %v", tmplName, err)
   }
 
-  cols := []col{
-    {
-      name: "Biking",
-      idx: 28,
-      factor: msToMin,
-    },
-    {
-      name: "Spinning",
-      idx: 33,
-      factor: msToMin,
-    },
-    {
-      name: "Stationary",
-      idx: 34,
-      factor: msToMin,
-    },
-    {
-      name: "Climbing",
-      idx: 40,
-      factor: msToMin,
-    },
-    {
-      name: "Strength",
-      idx: 42,
-      factor: msToMin,
-    },
-  }
   colTitles := []string{}
-  for _, c := range cols {
+  for _, c := range cols[*csvType] {
     colTitles = append(colTitles, c.name)
   }
 
-  lines, err := parseLines(cols, f)
+  lines, err := parseLines(cols[*csvType], f)
   if err != nil {
     log.Fatalf("Error parsing csv: %v",  err)
   }
