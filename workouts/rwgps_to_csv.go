@@ -39,7 +39,7 @@ func rideToCSV(r *goride.RideSlim, gear map[int]string) []string {
 		// Gear
 		gear[r.GearID],
 		// Duration
-		fmt.Sprintf("%d", r.Duration),
+		fmt.Sprintf("%d", r.MovingTime),
 		// Distance
 		fmt.Sprintf("%.2f", r.Distance),
 		// Elevation
@@ -73,8 +73,8 @@ func writeCSV(path string, rides []*goride.RideSlim, gear map[int]string) error 
 		"Name",
 		"Description",
 		"Gear",
-		"Duration",
-		"Distance",
+		"Moving Time (mins)",
+		"Distance (meters)",
 		"Elevation",
 		"sw latlong",
 		"sw long",
@@ -82,7 +82,7 @@ func writeCSV(path string, rides []*goride.RideSlim, gear map[int]string) error 
 		"ne long",
 	}
 	if err := w.Write(header); err != nil {
-		return fmt.Errof("Error writing headers: %v", err)
+		return fmt.Errorf("Error writing headers: %v", err)
 	}
 
 	for i, r := range rides {
